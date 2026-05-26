@@ -27,11 +27,13 @@ namespace OwO_Maker.Helpers
             // Reward Coupon
             await BackgroundHelper.SendKey(hWnd, BackgroundHelper.KeyCodes.VK_RETURN, 250);
             await Task.Delay(500 + new Random().Next(0, 100));
+            await BackgroundHelper.SendKey(hWnd, BackgroundHelper.KeyCodes.VK_ESCAPE, 250); // clear chat/dialog if RETURN opened one
+            await Task.Delay(1_500 + new Random().Next(0, 100)); // wait for chest animation to settle
 
-            if (mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints) >= 100 && playedGames < Amount)
+            if (playedGames < Amount)
             {
                 await BackgroundHelper.SendClick(hWnd, buttons.TryAgain.X, buttons.TryAgain.Y, 250);
-                await Task.Delay(500 + new Random().Next(0, 100));
+                await Task.Delay(1_000 + new Random().Next(0, 100));
 
                 await BackgroundHelper.SendClick(hWnd, buttons.GameStart.X, buttons.GameStart.Y, 250);
                 await Task.Delay(1_500 + new Random().Next(0, 100));

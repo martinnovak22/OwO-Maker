@@ -8,7 +8,6 @@ namespace OwO_Maker.Minigames
 {
     class ShootingRange
     {
-        private bool IsGameFinished = false;
         private int playedGames = 0;
 
         Mem mem = new Mem();

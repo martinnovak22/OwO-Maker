@@ -54,7 +54,7 @@ namespace OwO_Maker.Helpers
                 "1280x1024" => new ButtonResolution
                 {
                     RewardButton = new Point(771, 566),
-                    TryAgain = new Point(462, 466),
+                    TryAgain = new Point(587, 593),
                     FailedTryAgain = new Point(512, 564),
                     GameStart = new Point(648, 679),
                     StartMinigame = new Point(597, 660),

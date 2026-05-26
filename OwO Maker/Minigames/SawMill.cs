@@ -9,7 +9,6 @@ namespace OwO_Maker.Minigames
 {
     class SawMill
     {
-        private bool IsGameFinished = false;
         private int playedGames = 0;
 
         Mem mem = new Mem();
