@@ -413,6 +413,12 @@ namespace OwO_Maker
                     Properties.Settings.Default.ProdKey = ProductionCouponKey.Text;
             }
 
+            if (t_Times.Text.Length > 0 && t_Times.Text.All(Char.IsDigit) && Convert.ToInt32(t_Times.Text) > 0)
+                Properties.Settings.Default.Times = t_Times.Text;
+
+            if (t_Level.Text.Length > 0 && t_Level.Text.All(Char.IsDigit) && Convert.ToInt32(t_Level.Text) >= 1 && Convert.ToInt32(t_Level.Text) <= 5)
+                Properties.Settings.Default.Level = t_Level.Text;
+
             uint lastMinigame = 0;
             if (StoneQuarry.Checked)
                 lastMinigame = 0;
@@ -447,6 +453,12 @@ namespace OwO_Maker
                 if (check >= 0 && check < 10)
                     ProductionCouponKey.Text = Properties.Settings.Default.ProdKey;
             }
+
+            if (Properties.Settings.Default.Times.Length > 0 && Properties.Settings.Default.Times.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Times) > 0)
+                t_Times.Text = Properties.Settings.Default.Times;
+
+            if (Properties.Settings.Default.Level.Length > 0 && Properties.Settings.Default.Level.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Level) >= 1 && Convert.ToInt32(Properties.Settings.Default.Level) <= 5)
+                t_Level.Text = Properties.Settings.Default.Level;
 
             switch (Properties.Settings.Default.LastMinigame)
             {
