@@ -18,6 +18,9 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Test (Core)
+        run: dotnet test "OwO Maker.Core.Tests/OwO Maker.Core.Tests.csproj" -c Release
+
       - name: Build (x86 Release)
         run: dotnet build "OwO Maker/OwO Maker.csproj" -c Release -p:Platform=x86
 
