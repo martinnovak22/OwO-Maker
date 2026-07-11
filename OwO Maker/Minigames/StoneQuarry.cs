@@ -1,4 +1,5 @@
-﻿using OwO_Maker.Helpers;
+﻿using OwO_Maker.Core;
+using OwO_Maker.Helpers;
 using OwOMaker.Helpers;
 using System;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace OwO_Maker.Minigames
 
         Mem mem = new Mem();
 
-        public async void RunTask(IntPtr hWnd, int Amount, ButtonResolutionHelper.ButtonResolution buttons, int BotID, int level, bool HumanTime, bool UseProdCoupon, int FailChance, uint ProductionsCouponKey)
+        public async void RunTask(IntPtr hWnd, int Amount, ButtonResolutionHelper.ButtonResolution buttons, int BotID, int level, bool HumanTime, bool UseProdCoupon, int FailChance, uint ProductionsCouponKey, BotControl control, BotStats stats)
         {
             var proc = mem.FindProcessByHandle(hWnd);
 
@@ -33,12 +34,15 @@ namespace OwO_Maker.Minigames
             if (TMiniGameManager is 0 || TMiniGamePoints is 0 || TArrowWidget is 0)
             {
                 Program.form.RemoveBotFromList(BotID);
-                MessageBox.Show($"Bot: {BotID} Unable to locate Memory signatures, Abort!");
+                MessageBox.Show($"Bot: {BotID} Unable to locate Memory signatures, Abort!\n\n{stats.GetSummary()}");
                 return;
             }
 
-            while (Program.botRunning)
+            while (control.ShouldContinue)
             {
+                await control.WaitIfPausedAsync();
+                if (!control.ShouldContinue) return;
+
                 var manager = TMiniGameManager;
                 var MiniGameID = SharedRoutines.GetCurrentMiniGameID(mem, TMinigameMangerPointer);
                 var productionPoints = mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints);
@@ -108,16 +112,21 @@ namespace OwO_Maker.Minigames
                         if (points >= requiredPoints && status is Structs.Status.GameEnd or Structs.Status.GameEnded1 or Structs.Status.GameEnded2)
                         {
                             await SharedRoutines.CollectReward(mem, TMiniGamePoints, playedGames + 1, Amount, hWnd, buttons, level);
+                            stats.RecordSuccess();
                             playedGames++;
                         }
                         else
+                        {
+                            if (status is Structs.Status.GameEnd or Structs.Status.GameEnded1 or Structs.Status.GameEnded2)
+                                stats.RecordFailure();
                             await SharedRoutines.FailTryAgain(hWnd, buttons);
+                        }
 
                         if (playedGames >= Amount)
                         {
                             Program.form.UpdateStatus(BotID, "StoneQuarry", level, points, productionPoints, UseProdCoupon, HumanTime, $"{playedGames}/{Amount}");
                             Program.form.RemoveBotFromList(BotID);
-                            MessageBox.Show($"Bot: {BotID} Done!");
+                            MessageBox.Show($"Bot: {BotID} Done!\n\n{stats.GetSummary()}");
                             return;
                         }
 
@@ -133,14 +142,14 @@ namespace OwO_Maker.Minigames
                                 if (productionPoints == mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints))
                                 {
                                     Program.form.RemoveBotFromList(BotID);
-                                    MessageBox.Show($"Bot: {BotID} Failed to use Productions Coupon!\n\nWrong Key selected?\nNo Item in selected Slot?\nEmpty Coupons?\n\n {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()}");
+                                    MessageBox.Show($"Bot: {BotID} Failed to use Productions Coupon!\n\nWrong Key selected?\nNo Item in selected Slot?\nEmpty Coupons?\n\n {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()}\n\n{stats.GetSummary()}");
                                     return;
                                 }
                             }
                             else
                             {
                                 Program.form.RemoveBotFromList(BotID);
-                                MessageBox.Show($"Bot: {BotID} no production points left!");
+                                MessageBox.Show($"Bot: {BotID} no production points left!\n\n{stats.GetSummary()}");
                                 return;
                             }
                         }
@@ -178,7 +187,7 @@ namespace OwO_Maker.Minigames
                     else
                     {
                         Program.form.RemoveBotFromList(BotID);
-                        MessageBox.Show($"Bot: {BotID} Failed to open Minigame, Abort!");
+                        MessageBox.Show($"Bot: {BotID} Failed to open Minigame, Abort!\n\n{stats.GetSummary()}");
                         return;
                     }
                 }

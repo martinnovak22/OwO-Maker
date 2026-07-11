@@ -65,6 +65,7 @@
             columnHeader3 = new System.Windows.Forms.ColumnHeader();
             columnHeader6 = new System.Windows.Forms.ColumnHeader();
             columnHeader8 = new System.Windows.Forms.ColumnHeader();
+            columnHeader9 = new System.Windows.Forms.ColumnHeader();
             button2 = new System.Windows.Forms.Button();
             groupBox1.SuspendLayout();
             groupBox4.SuspendLayout();
@@ -400,7 +401,7 @@
             // listView1
             // 
             listView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader3, columnHeader6, columnHeader8 });
+            listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader3, columnHeader6, columnHeader8, columnHeader9 });
             listView1.ImeMode = System.Windows.Forms.ImeMode.On;
             listView1.Location = new System.Drawing.Point(7, 7);
             listView1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -448,7 +449,12 @@
             // columnHeader8
             // 
             columnHeader8.Text = "Progress";
-            // 
+            //
+            // columnHeader9
+            //
+            columnHeader9.Text = "State";
+            columnHeader9.Width = 70;
+            //
             // button2
             // 
             button2.Location = new System.Drawing.Point(8, 243);
@@ -516,6 +522,7 @@
         private System.Windows.Forms.CheckBox HumanTime;
         private System.Windows.Forms.ColumnHeader columnHeader6;
         private System.Windows.Forms.ColumnHeader columnHeader8;
+        private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox t_FailChance;

@@ -1,4 +1,5 @@
-﻿using OwO_Maker.Helpers;
+﻿using OwO_Maker.Core;
+using OwO_Maker.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,10 +19,9 @@ namespace OwO_Maker
 
         private List<int> HWndList = new List<int>();
         private List<IntPtr> WindowList = new List<IntPtr>();
-        private List<Tuple<Thread, nint>> BotList = new List<Tuple<Thread, nint>>();
+        private List<BotEntry> BotList = new List<BotEntry>();
 
         public bool Reset { get; private set; }
-        public bool IsStarted { get; private set; }
 
         [DllImport("user32.dll")]
         static extern bool SetWindowText(IntPtr hWnd, string text);
@@ -77,6 +77,54 @@ namespace OwO_Maker
         public Form1()
         {
             InitializeComponent();
+
+            // Per-bot context menu for the "Running Bots" list (built in code, not the Designer)
+            var botMenu = new ContextMenuStrip();
+            var startItem = new ToolStripMenuItem("Start");
+            var pauseItem = new ToolStripMenuItem("Pause");
+            var resumeItem = new ToolStripMenuItem("Resume");
+            var stopItem = new ToolStripMenuItem("Stop");
+            botMenu.Items.AddRange(new ToolStripItem[] { startItem, pauseItem, resumeItem, stopItem });
+
+            botMenu.Opening += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry == null)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                var state = entry.Control.State;
+                startItem.Enabled = state == BotState.Created;
+                pauseItem.Enabled = state == BotState.Running;
+                resumeItem.Enabled = state == BotState.Paused;
+                stopItem.Enabled = state != BotState.Stopped;
+            };
+
+            startItem.Click += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry != null && entry.Control.Start() && !entry.ThreadStarted)
+                {
+                    entry.Thread.Start();
+                    entry.ThreadStarted = true;
+                }
+            };
+            pauseItem.Click += (s, e) => GetSelectedBotEntry()?.Control.Pause();
+            resumeItem.Click += (s, e) => GetSelectedBotEntry()?.Control.Resume();
+            stopItem.Click += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry != null)
+                {
+                    entry.Control.Stop();
+                    RemoveBotFromList(entry.BotId);
+                }
+            };
+
+            listView1.ContextMenuStrip = botMenu;
+
             if (!Properties.Settings.Default.Disclaimer)
             {
                 MessageBox.Show("DISCLAIMER:\n\n IF U PAID FOR THIS SOFTWARE U GOT SCAMMED!!!\n\n\n" +
@@ -110,7 +158,8 @@ namespace OwO_Maker
             SaveSettings();
 
             Reset = true;
-            Program.botRunning = false;
+            foreach (BotEntry entry in BotList)
+                entry.Control.Stop();
             RefreshHandle();
         }
 
@@ -186,12 +235,18 @@ namespace OwO_Maker
             }
 
 
-            if ((int)Game == 0) { BotList.Add(new(new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 1) { BotList.Add(new(new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 2) { BotList.Add(new(new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 3) { BotList.Add(new(new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
+            var entry = new BotEntry { BotId = Convert.ToInt32(BotID), ClientHwnd = ClientHWND };
 
-            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), $"0/{t_Times.Text}" };
+            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
+            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
+            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
+            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
+
+            BotList.Add(entry);
+
+            entry.Control.StateChanged += s => { if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 8) it.SubItems[8].Text = s.ToString(); })); };
+
+            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), $"0/{t_Times.Text}", "Created" };
             var bot = new ListViewItem(row);
             listView1.Items.Add(bot);
 
@@ -244,22 +299,13 @@ namespace OwO_Maker
                 return;
             }
 
-
-            if (!IsStarted)
-            {
-                MessageBox.Show("Bots aren't started yet!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
             int Amount = BotList.Count;
-            foreach (Tuple<Thread, nint> Bot in BotList)
-                Bot.Item1.Interrupt();
+            foreach (BotEntry entry in BotList)
+                entry.Control.Stop();
 
-            Program.botRunning = false;
             BotList.Clear();
             WindowList.Clear();
             listView1.Items.Clear();
-            IsStarted = false;
             MessageBox.Show($"{Amount} Bots have been Stopped and removed from List!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -271,25 +317,29 @@ namespace OwO_Maker
                 return;
             }
 
-            if (IsStarted)
+            int started = 0;
+            foreach (BotEntry entry in BotList)
             {
-                MessageBox.Show("Already Started!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (entry.Control.Start())
+                {
+                    if (!entry.ThreadStarted)
+                    {
+                        entry.Thread.Start();
+                        entry.ThreadStarted = true;
+                    }
+                    started++;
+                }
+                else if (entry.Control.State == BotState.Paused)
+                {
+                    if (entry.Control.Resume())
+                        started++;
+                }
             }
 
-            Program.botRunning = true;
-
-            Invoke(new Action(() =>
-            {
-                int Amount = BotList.Count;
-                foreach (Tuple<Thread, nint> Bot in BotList)
-                    Bot.Item1.Start();
-
-                IsStarted = true;
-                MessageBox.Show($"{Amount} Bots have been started!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }));
-
-
+            if (started == 0)
+                MessageBox.Show("No bots to start!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else
+                MessageBox.Show($"{started} Bots have been started!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, bool UseProdCoupon, bool HumanTime, string progress)
         {
@@ -299,36 +349,50 @@ namespace OwO_Maker
                 var item = FindListViewItemByBotID(botID);
                 string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), UseProdCoupon.ToString(), HumanTime.ToString(), progress };
                 if (item != null)
-                    for (int i = 0; i < item.SubItems.Count; i++)
+                    for (int i = 0; i < row.Length; i++)
                         item.SubItems[i].Text = row[i].ToString();
 
             }));
         }
 
-        public void RemoveBotFromList(nint botID)
+        public void RemoveBotFromList(int botID)
         {
             Invoke(new Action(() =>
             {
-                // Remove from ThreadList
-                BotList.Remove(BotList.Where(x => x.Item2 == botID).FirstOrDefault());
+                var entry = BotList.Where(x => x.BotId == botID).FirstOrDefault();
+                if (entry != null)
+                {
+                    // Defensive: make sure the worker loop is told to stop
+                    entry.Control.Stop();
+
+                    // Remove from BotList
+                    BotList.Remove(entry);
+
+                    // Remove the client HWND so it can be added again later
+                    WindowList.Remove(entry.ClientHwnd);
+                }
 
                 // Remove from ListView
-                listView1.Items.Remove(FindListViewItemByBotID((int)botID));
-
-                // Remove from WindowList
-                WindowList.Remove(botID);
-
-                if (BotList.Count <= 0)
-                    IsStarted = false;
+                listView1.Items.Remove(FindListViewItemByBotID(botID));
             }));
+        }
+
+        private BotEntry GetSelectedBotEntry()
+        {
+            if (listView1.SelectedItems.Count == 0)
+                return null;
+
+            if (!int.TryParse(listView1.SelectedItems[0].SubItems[0].Text, out int botID))
+                return null;
+
+            return BotList.Where(x => x.BotId == botID).FirstOrDefault();
         }
 
         private ListViewItem FindListViewItemByBotID(int BotID)
         {
             foreach (ListViewItem item in listView1.Items)
-                foreach (ListViewItem.ListViewSubItem subItem in item.SubItems)
-                    if (subItem.Text == BotID.ToString())
-                        return item;
+                if (item.SubItems[0].Text == BotID.ToString())
+                    return item;
             return null;
         }
 
