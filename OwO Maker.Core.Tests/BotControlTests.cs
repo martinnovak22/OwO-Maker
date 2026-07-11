@@ -197,18 +197,18 @@ public class BotControlTests
     }
 
     [Fact]
-    public void WaitIfPaused_ReturnsImmediately_WhenNotPaused()
+    public async Task WaitIfPaused_ReturnsImmediately_WhenNotPaused()
     {
         var control = new BotControl();
         control.Start();
 
         var task = Task.Run(() => control.WaitIfPaused());
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void WaitIfPaused_Blocks_WhilePaused_Unblocks_OnResume()
+    public async Task WaitIfPaused_Blocks_WhilePaused_Unblocks_OnResume()
     {
         var control = new BotControl();
         control.Start();
@@ -216,15 +216,16 @@ public class BotControlTests
 
         var task = Task.Run(() => control.WaitIfPaused());
 
-        Assert.False(task.Wait(TimeSpan.FromMilliseconds(200)));
+        await Task.Delay(200);
+        Assert.False(task.IsCompleted);
 
         control.Resume();
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void WaitIfPaused_Blocks_WhilePaused_Unblocks_OnStop()
+    public async Task WaitIfPaused_Blocks_WhilePaused_Unblocks_OnStop()
     {
         var control = new BotControl();
         control.Start();
@@ -232,26 +233,27 @@ public class BotControlTests
 
         var task = Task.Run(() => control.WaitIfPaused());
 
-        Assert.False(task.Wait(TimeSpan.FromMilliseconds(200)));
+        await Task.Delay(200);
+        Assert.False(task.IsCompleted);
 
         control.Stop();
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void WaitIfPausedAsync_CompletesImmediately_WhenNotPaused()
+    public async Task WaitIfPausedAsync_CompletesImmediately_WhenNotPaused()
     {
         var control = new BotControl();
         control.Start();
 
         Task task = control.WaitIfPausedAsync();
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void WaitIfPausedAsync_StaysIncomplete_WhilePaused_Completes_OnResume()
+    public async Task WaitIfPausedAsync_StaysIncomplete_WhilePaused_Completes_OnResume()
     {
         var control = new BotControl();
         control.Start();
@@ -259,15 +261,16 @@ public class BotControlTests
 
         Task task = control.WaitIfPausedAsync();
 
-        Assert.False(task.Wait(TimeSpan.FromMilliseconds(200)));
+        await Task.Delay(200);
+        Assert.False(task.IsCompleted);
 
         control.Resume();
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void WaitIfPausedAsync_StaysIncomplete_WhilePaused_Completes_OnStop()
+    public async Task WaitIfPausedAsync_StaysIncomplete_WhilePaused_Completes_OnStop()
     {
         var control = new BotControl();
         control.Start();
@@ -275,10 +278,11 @@ public class BotControlTests
 
         Task task = control.WaitIfPausedAsync();
 
-        Assert.False(task.Wait(TimeSpan.FromMilliseconds(200)));
+        await Task.Delay(200);
+        Assert.False(task.IsCompleted);
 
         control.Stop();
 
-        Assert.True(task.Wait(TimeSpan.FromSeconds(5)));
+        await task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 }
