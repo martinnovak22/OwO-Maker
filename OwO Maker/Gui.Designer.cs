@@ -46,6 +46,7 @@
             label9 = new System.Windows.Forms.Label();
             ProductionCoupon = new System.Windows.Forms.CheckBox();
             button5 = new System.Windows.Forms.Button();
+            buttonAddAll = new System.Windows.Forms.Button();
             groupBox2 = new System.Windows.Forms.GroupBox();
             ShootingRange = new System.Windows.Forms.RadioButton();
             StoneQuarry = new System.Windows.Forms.RadioButton();
@@ -101,6 +102,7 @@
             // 
             groupBox1.Controls.Add(groupBox4);
             groupBox1.Controls.Add(button5);
+            groupBox1.Controls.Add(buttonAddAll);
             groupBox1.Controls.Add(listBox1);
             groupBox1.Controls.Add(groupBox2);
             groupBox1.Controls.Add(button1);
@@ -270,11 +272,22 @@
             button5.Location = new System.Drawing.Point(258, 227);
             button5.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button5.Name = "button5";
-            button5.Size = new System.Drawing.Size(332, 27);
+            button5.Size = new System.Drawing.Size(200, 27);
             button5.TabIndex = 5;
             button5.Text = "Add Bot";
             button5.UseVisualStyleBackColor = true;
             button5.Click += button5_Click;
+            //
+            // buttonAddAll
+            //
+            buttonAddAll.Location = new System.Drawing.Point(466, 227);
+            buttonAddAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            buttonAddAll.Name = "buttonAddAll";
+            buttonAddAll.Size = new System.Drawing.Size(124, 27);
+            buttonAddAll.TabIndex = 14;
+            buttonAddAll.Text = "Add All";
+            buttonAddAll.UseVisualStyleBackColor = true;
+            buttonAddAll.Click += buttonAddAll_Click;
             // 
             // groupBox2
             // 
@@ -533,6 +546,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader10;
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ListBox logList;
+        private System.Windows.Forms.Button buttonAddAll;
         private System.Windows.Forms.Button buttonPauseAll;
         private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;

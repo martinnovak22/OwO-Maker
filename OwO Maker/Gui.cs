@@ -205,15 +205,53 @@ namespace OwO_Maker
             RefreshHandle();
         }
 
-        private void button5_Click(object sender, EventArgs e)
+        private bool ValidatePlaySettings(out int levelValue, out int failChanceValue, out int amountValue, out uint prodkey)
         {
-            if (listBox1.SelectedItem == null)
+            failChanceValue = 0;
+            amountValue = 0;
+            prodkey = 0;
+
+            if (!int.TryParse(t_Level.Text, out levelValue))
             {
-                MessageBox.Show("No Client selected!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                MessageBox.Show("Invalid Number for Level!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
 
-            IntPtr ClientHWND = FindWindow("TNosTaleMainF", listBox1.SelectedItem.ToString());
+            if (!int.TryParse(t_FailChance.Text, out failChanceValue) || failChanceValue < 0 || failChanceValue > 100)
+            {
+                MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            else if (failChanceValue == 100)
+            {
+                MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!MaxGames.Checked && (!int.TryParse(t_Times.Text, out amountValue) || amountValue <= 0))
+            {
+                MessageBox.Show("Invalid Number for Amount!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            prodkey = GetProdKey(ProductionCouponKey.Text);
+
+            if (prodkey == 0)
+            {
+                MessageBox.Show("Invalid Production Key!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        // Adds one bot for the given client window title. Returns null on success, otherwise the reason it was skipped.
+        private string AddBotForClient(string Title, int levelValue, int failChanceValue, int amountValue, uint prodkey)
+        {
+            IntPtr ClientHWND = FindWindow("TNosTaleMainF", Title);
+
+            if (ClientHWND == IntPtr.Zero)
+                return "window not found (refresh the Client List)";
 
             RECT rect;
             GetClientRect(ClientHWND, out rect);
@@ -222,75 +260,32 @@ namespace OwO_Maker
             var buttons = ButtonResolutionHelper.GetButtonPositions(Resolution);
 
             if (buttons is null)
-            {
-                MessageBox.Show($"Game uses a unsupported Resolution ({Resolution})!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+                return $"unsupported Resolution ({Resolution})";
 
             if (WindowList.Contains(ClientHWND))
-            {
-                MessageBox.Show("This Client is already in the List!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+                return "already in the List";
 
-            if (!int.TryParse(t_Level.Text, out int levelValue))
-            {
-                MessageBox.Show("Invalid Number for Level!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            if (!int.TryParse(t_FailChance.Text, out int failChanceValue) || failChanceValue < 0 || failChanceValue > 100)
-            {
-                MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            else if (failChanceValue == 100)
-            {
-                MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            int amountValue = 0;
-            if (!MaxGames.Checked && (!int.TryParse(t_Times.Text, out amountValue) || amountValue <= 0))
-            {
-                MessageBox.Show("Invalid Number for Amount!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            uint prodkey = GetProdKey(ProductionCouponKey.Text);
-
-            if (prodkey == 0)
-            {
-                MessageBox.Show("Invalid Production Key!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            WindowList.Add(ClientHWND);
+            string BotID = Title.Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
+            if (!int.TryParse(BotID, out int botId))
+                return "could not read Bot ID from the window title (refresh the Client List)";
 
             Minigame Game = GetWantedMinigame();
-
-            string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
-            string Title = listBox1.SelectedItem.ToString();
             bool unlimited = MaxGames.Checked;
             int Amount = unlimited ? int.MaxValue : amountValue;
             int Level = levelValue;
             int failchance = failChanceValue;
 
+            var entry = new BotEntry { BotId = botId, ClientHwnd = ClientHWND };
 
-            var entry = new BotEntry { BotId = Convert.ToInt32(BotID), ClientHwnd = ClientHWND };
-
-            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
-            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
-            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
-            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, botId, Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, botId, Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, botId, Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, botId, Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
 
             if (entry.Thread == null)
-            {
-                WindowList.Remove(ClientHWND);
-                MessageBox.Show("No Minigame selected!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+                return "no Minigame selected";
 
+            WindowList.Add(ClientHWND);
             BotList.Add(entry);
 
             entry.Control.StateChanged += s =>
@@ -307,13 +302,75 @@ namespace OwO_Maker
 
             Log($"Bot {BotID} added: {Game}, level {t_Level.Text}, amount {(unlimited ? "∞" : t_Times.Text)}");
 
-            MessageBox.Show($"{listBox1.SelectedItem.ToString()} added to the Bot List!\n" +
-                $"\nMinigame: {Game}\nWanted Level: {t_Level.Text}\n" +
-                $"Amount: {(unlimited ? "∞ (until points run out)" : t_Times.Text)}\n" +
+            return null;
+        }
+
+        private string PlaySettingsSummary()
+        {
+            return $"Minigame: {GetWantedMinigame()}\nWanted Level: {t_Level.Text}\n" +
+                $"Amount: {(MaxGames.Checked ? "∞ (until points run out)" : t_Times.Text)}\n" +
                 $"Human Time: {HumanTime.Checked.ToString()}\n" +
-                $"Use Productions Coupon: {ProductionCoupon.Checked.ToString()}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                $"Use Productions Coupon: {ProductionCoupon.Checked.ToString()}";
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem == null)
+            {
+                MessageBox.Show("No Client selected!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!ValidatePlaySettings(out int levelValue, out int failChanceValue, out int amountValue, out uint prodkey))
+                return;
+
+            string Title = listBox1.SelectedItem.ToString();
+            string error = AddBotForClient(Title, levelValue, failChanceValue, amountValue, prodkey);
+
+            if (error != null)
+            {
+                MessageBox.Show($"{Title}: {error}!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            MessageBox.Show($"{Title} added to the Bot List!\n\n{PlaySettingsSummary()}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             SaveSettings();
+        }
+
+        private void buttonAddAll_Click(object sender, EventArgs e)
+        {
+            if (listBox1.Items.Count == 0)
+            {
+                MessageBox.Show("No Clients found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!ValidatePlaySettings(out int levelValue, out int failChanceValue, out int amountValue, out uint prodkey))
+                return;
+
+            int added = 0;
+            var skipped = new List<string>();
+
+            foreach (var item in listBox1.Items)
+            {
+                string Title = item.ToString();
+                string error = AddBotForClient(Title, levelValue, failChanceValue, amountValue, prodkey);
+
+                if (error == null)
+                    added++;
+                else
+                    skipped.Add($"{Title}: {error}");
+            }
+
+            string message = $"{added} of {listBox1.Items.Count} Clients added to the Bot List!\n\n{PlaySettingsSummary()}";
+            if (skipped.Count > 0)
+                message += "\n\nSkipped:\n" + string.Join("\n", skipped);
+
+            MessageBox.Show(message, added > 0 ? "Success" : "Error", MessageBoxButtons.OK, added > 0 ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+
+            if (added > 0)
+                SaveSettings();
         }
 
         private Minigame GetWantedMinigame()
