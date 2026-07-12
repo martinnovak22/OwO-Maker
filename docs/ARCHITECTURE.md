@@ -89,6 +89,12 @@ App: `BotEntry` (OwO Maker/BotEntry.cs) = BotId + ClientHwnd + Thread + Control 
 
 **Max režim (checkbox `MaxGames` u pole Times):** zamkne `t_Times` a bot hraje, dokud stačí produkční body — interně `Amount = int.MaxValue` (funguje přirozeně: `playedGames >= Amount` nikdy nenastane a `CollectReward` vždy kliká Try Again), progress se zobrazuje `X/∞` a dojití bodů je normální „Done! Ran out of production points." místo chyby. `RunTask` má poslední parametr `bool unlimited`. Checkbox se persistuje jako setting `MaxGames`; persistují se i `Times` a `Level`.
 
+**Character-name probe (větev `feature/character-name-probe`, 2026-07-12):** základ pro profily botů (TODO #2).
+- `Structs.Pattern.TPlayerManager` — signatura z NosSmooth.Local; operand instrukce `A1` je na +6 → statický ukazatel na PlayerManager. Offsety: `TPlayerManager.Player = 0x20` (0 = login/char select), `PlayerId = 0x24`, `TMapPlayer.NamePtr = 0x1EC` (Delphi AnsiString: int délka na ptr−4, ASCII data na ptr).
+- `CharacterName` (Core + testy) — `TryDecode(length, bytes, out name)` a `IsPlausible`; garbage délka/nepotisknutelné bajty (= drift offsetu) vrací false.
+- `PlayerInfoProbe.Run(Mem)` (Helpers) — krokovaná diagnostika (pattern → static → manager → player → name) včetně hex dumpu okolí `Player+0x1EC` pro odhalení driftu.
+- Tlačítko **Read Memory** na Main tabu (vedle Refresh, `buttonReadMemory`): probne vybraného klienta (bez výběru všechny), loguje do log panelu a přepne na tab Running Bots.
+
 Lokální vývoj na macOS: `~/.dotnet/dotnet` (SDK 8; systémový je v7). App jde zkompilovat i tady: `dotnet build "OwO Maker/OwO Maker.csproj" -p:EnableWindowsTargeting=true`.
 
 ## Testovatelnost

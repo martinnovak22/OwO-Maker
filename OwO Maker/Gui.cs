@@ -373,6 +373,52 @@ namespace OwO_Maker
                 SaveSettings();
         }
 
+        // Diagnostic probe for the character-name signature (bot profiles groundwork).
+        // Probes the selected client, or all listed clients when none is selected,
+        // and dumps every step into the log panel on the Running Bots tab.
+        private void buttonReadMemory_Click(object sender, EventArgs e)
+        {
+            var titles = listBox1.SelectedItem != null
+                ? new List<string> { listBox1.SelectedItem.ToString() }
+                : listBox1.Items.Cast<object>().Select(x => x.ToString()).ToList();
+
+            if (titles.Count == 0)
+            {
+                MessageBox.Show("No Clients found! Refresh the Client List first.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            tabControl1.SelectedTab = tabPage2; // the log lives there
+
+            foreach (var title in titles)
+            {
+                Log($"=== Memory probe: {title} ===");
+
+                IntPtr clientHwnd = FindWindow("TNosTaleMainF", title);
+                if (clientHwnd == IntPtr.Zero)
+                {
+                    Log("window not found (refresh the Client List)");
+                    continue;
+                }
+
+                var mem = new OwOMaker.Helpers.Mem();
+                try
+                {
+                    mem.Init(mem.FindProcessByHandle(clientHwnd));
+                }
+                catch (Exception ex)
+                {
+                    Log($"failed to open process: {ex.Message}");
+                    continue;
+                }
+
+                foreach (var line in PlayerInfoProbe.Run(mem))
+                    Log(line);
+            }
+
+            Log("=== Memory probe done ===");
+        }
+
         private Minigame GetWantedMinigame()
         {
             int wantedGame = -1;

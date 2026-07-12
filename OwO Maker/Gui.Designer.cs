@@ -47,6 +47,7 @@
             ProductionCoupon = new System.Windows.Forms.CheckBox();
             button5 = new System.Windows.Forms.Button();
             buttonAddAll = new System.Windows.Forms.Button();
+            buttonReadMemory = new System.Windows.Forms.Button();
             groupBox2 = new System.Windows.Forms.GroupBox();
             ShootingRange = new System.Windows.Forms.RadioButton();
             StoneQuarry = new System.Windows.Forms.RadioButton();
@@ -81,7 +82,7 @@
             button1.Location = new System.Drawing.Point(258, 194);
             button1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button1.Name = "button1";
-            button1.Size = new System.Drawing.Size(332, 27);
+            button1.Size = new System.Drawing.Size(200, 27);
             button1.TabIndex = 0;
             button1.Text = "Refresh Client List";
             button1.UseVisualStyleBackColor = true;
@@ -103,6 +104,7 @@
             groupBox1.Controls.Add(groupBox4);
             groupBox1.Controls.Add(button5);
             groupBox1.Controls.Add(buttonAddAll);
+            groupBox1.Controls.Add(buttonReadMemory);
             groupBox1.Controls.Add(listBox1);
             groupBox1.Controls.Add(groupBox2);
             groupBox1.Controls.Add(button1);
@@ -277,6 +279,17 @@
             button5.Text = "Add Bot";
             button5.UseVisualStyleBackColor = true;
             button5.Click += button5_Click;
+            //
+            // buttonReadMemory
+            //
+            buttonReadMemory.Location = new System.Drawing.Point(466, 194);
+            buttonReadMemory.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            buttonReadMemory.Name = "buttonReadMemory";
+            buttonReadMemory.Size = new System.Drawing.Size(124, 27);
+            buttonReadMemory.TabIndex = 15;
+            buttonReadMemory.Text = "Read Memory";
+            buttonReadMemory.UseVisualStyleBackColor = true;
+            buttonReadMemory.Click += buttonReadMemory_Click;
             //
             // buttonAddAll
             //
@@ -547,6 +560,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ListBox logList;
         private System.Windows.Forms.Button buttonAddAll;
+        private System.Windows.Forms.Button buttonReadMemory;
         private System.Windows.Forms.Button buttonPauseAll;
         private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;
