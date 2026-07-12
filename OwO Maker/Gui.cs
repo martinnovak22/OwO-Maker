@@ -254,9 +254,8 @@ namespace OwO_Maker
 
             if (entry.Thread == null)
             {
-                // TypeWriter/Memory have no bot implementation; can happen when LastMinigame was persisted as 4/5
                 WindowList.Remove(ClientHWND);
-                MessageBox.Show("Selected minigame is not implemented!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("No Minigame selected!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -286,8 +285,6 @@ namespace OwO_Maker
             if (SawMill.Checked) { wantedGame = 1; }
             if (ShootingRange.Checked) { wantedGame = 2; }
             if (FishPond.Checked) { wantedGame = 3; }
-            if (TypeWriter.Checked) { wantedGame = 4; }
-            if (Memory.Checked) { wantedGame = 5; }
 
             return (Minigame)Enum.Parse(typeof(Minigame), wantedGame.ToString(), true);
 
@@ -531,10 +528,6 @@ namespace OwO_Maker
                 lastMinigame = 2;
             else if (FishPond.Checked)
                 lastMinigame = 3;
-            else if (TypeWriter.Checked)
-                lastMinigame = 4;
-            else if (Memory.Checked)
-                lastMinigame = 5;
 
             Properties.Settings.Default.LastMinigame = lastMinigame;
 
@@ -578,12 +571,6 @@ namespace OwO_Maker
                     break;
                 case 3:
                     FishPond.Checked = true;
-                    break;
-                case 4:
-                    TypeWriter.Checked = true;
-                    break;
-                case 5:
-                    Memory.Checked = true;
                     break;
                 default:
                     StoneQuarry.Checked = true;

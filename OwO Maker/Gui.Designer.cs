@@ -47,8 +47,6 @@
             ProductionCoupon = new System.Windows.Forms.CheckBox();
             button5 = new System.Windows.Forms.Button();
             groupBox2 = new System.Windows.Forms.GroupBox();
-            Memory = new System.Windows.Forms.RadioButton();
-            TypeWriter = new System.Windows.Forms.RadioButton();
             ShootingRange = new System.Windows.Forms.RadioButton();
             StoneQuarry = new System.Windows.Forms.RadioButton();
             SawMill = new System.Windows.Forms.RadioButton();
@@ -281,8 +279,6 @@
             // 
             // groupBox2
             // 
-            groupBox2.Controls.Add(Memory);
-            groupBox2.Controls.Add(TypeWriter);
             groupBox2.Controls.Add(ShootingRange);
             groupBox2.Controls.Add(StoneQuarry);
             groupBox2.Controls.Add(SawMill);
@@ -295,31 +291,7 @@
             groupBox2.TabIndex = 3;
             groupBox2.TabStop = false;
             groupBox2.Text = "Minigames";
-            // 
-            // Memory
-            // 
-            Memory.AutoSize = true;
-            Memory.Enabled = false;
-            Memory.Location = new System.Drawing.Point(8, 153);
-            Memory.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            Memory.Name = "Memory";
-            Memory.Size = new System.Drawing.Size(110, 19);
-            Memory.TabIndex = 5;
-            Memory.Text = "Memory (Event)";
-            Memory.UseVisualStyleBackColor = true;
-            // 
-            // TypeWriter
-            // 
-            TypeWriter.AutoSize = true;
-            TypeWriter.Enabled = false;
-            TypeWriter.Location = new System.Drawing.Point(8, 128);
-            TypeWriter.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            TypeWriter.Name = "TypeWriter";
-            TypeWriter.Size = new System.Drawing.Size(119, 19);
-            TypeWriter.TabIndex = 4;
-            TypeWriter.Text = "Typewriter (Event)";
-            TypeWriter.UseVisualStyleBackColor = true;
-            // 
+            //
             // ShootingRange
             // 
             ShootingRange.AutoSize = true;
@@ -580,8 +552,6 @@
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox t_FailChance;
-        private System.Windows.Forms.RadioButton Memory;
-        private System.Windows.Forms.RadioButton TypeWriter;
         private System.Windows.Forms.ColumnHeader columnHeader5;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox ProductionCouponKey;
