@@ -22,6 +22,21 @@ klikem ji obnovit po restartu hry/aplikace.
 - **Blokátor:** klient se identifikuje přes HWND/PID, které se mění při každém startu hry.
   Vazba na postavu vyžaduje přečíst jméno postavy z paměti klienta — prozkoumat, zda je
   v dosahu existujících signatur (`TMiniGameManager` okolí) nebo je potřeba nová signatura.
+- **Výsledek průzkumu (2026-07-12):** existující signatury jméno nedají — všechny tři míří
+  jen na minigame objekty. Je potřeba jedna nová signatura na `PlayerManager`; veřejně známá
+  z projektu NosSmooth.Local (Rutherther, C#, stejný Gameforge klient):
+  - Pattern: `33 C9 8B 55 FC A1 ?? ?? ?? ?? E8 ?? ?? ?? ??` — operand instrukce `A1` je na
+    +6, tedy stejný mechanismus jako naše signatury: `ReadMemory<IntPtr>(FindPattern(p) + 6, [0x0])`
+    → PlayerManager.
+  - `PlayerManager + 0x20` → ukazatel na Player objekt (0 = char select / nenalogováno —
+    použitelné jako validace), `PlayerManager + 0x24` → PlayerId (int).
+  - `Player + 0x1EC` → ukazatel na jméno; Delphi AnsiString: délka je int na `ptr - 4`,
+    data ASCII na `ptr`. Sanity check délky (1–~20) + regex na jméno.
+  - Zdroj: github.com/Rutherther/NosSmooth.Local — `src/Core/NosSmooth.LocalBinding/`
+    (`Options/PlayerManagerOptions.cs`, `Structs/PlayerManager.cs`, `Structs/MapPlayerObj.cs`,
+    `NosBrowserManager.cs`).
+  - Riziko: offsety 0x20/0x1EC můžou driftovat s verzí klienta → udělat čtení jména
+    fail-safe (když nevyjde, profil se chová jako slabší varianta bez vazby na postavu).
 - Bez jména postavy jde udělat slabší varianta: profil bez vazby na klienta — uloží se
   jen Play Settings sestavy a při obnově se přiřadí klienti ručně v pořadí.
 - Persistence: JSON vedle user settings (ne do Properties.Settings — pole s objekty se

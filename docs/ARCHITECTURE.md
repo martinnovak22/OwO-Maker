@@ -81,8 +81,9 @@ App: `BotEntry` (OwO Maker/BotEntry.cs) = BotId + ClientHwnd + Thread + Control 
 **QoL kolo 2 (2026-07-12):**
 - `BotStats` navíc měří aktivní čas běhu: `StartRun/PauseRun/ResumeRun` (pauzy se nepočítají; GUI je volá ze `StateChanged`), `Elapsed`, `AverageRound`; `GetSummary()` pak končí `, Avg round: 1:23, Total: 27:40`. Injektovatelný `TimeProvider` (testy používají fake).
 - Záložka Running Bots: tabulka zmenšená (115px) + pod ní **log panel** `logList` (500 záznamů, auto-scroll). `Form1.Log(msg)` a `NotifyBotEnded(botID, msg)` (log + `SystemSounds.Asterisk`). Všechny MessageBoxy z worker threadů miniher nahrazeny `NotifyBotEnded`; informační boxy v Gui (started/stopped/added) nahrazeny logem; validační chyby zůstaly popupy.
-- Tlačítka: Start All (8), Pause All (159), Resume All (310), Stop/Delete All (461), všechna 140×27 na y=243.
-- Sloupce listView1: BotID, Minigame, Level, Points, Prod Points, Progress (5, owner-drawn zelený bar dle "a/b"; "x/∞" jen text), Success (6, "15/20 (75 %)"), State (7). `UpdateStatus(botID, game, level, points, prodPoints, progress, success)`. Sloupce Use Prod. Coupon a Human Time odstraněny.
+- Tlačítka: Start All (8), Pause All (234), Stop/Delete All (461), 140×27 na y=243, kotvená dole. (Resume All odebráno — Start All pausnuté resumuje.)
+- Sloupce listView1: BotID, Minigame, Level, Points, Prod Points, Progress (5, owner-drawn zelený bar dle "a/b"; "x/∞" jen text — bez známého cíle bar nejde), Success (6, "15/20 (75 %)"), **Action (7)** — owner-drawn tlačítko (ButtonRenderer) s labelem dle stavu: Created→Start, Running→Pause, Paused→Resume; klik obsluhuje `listView1.MouseClick` + HitTest. `UpdateStatus(botID, game, level, points, prodPoints, progress, success)`. Sloupce Use Prod. Coupon a Human Time odstraněny. Pravý klik (kontextové menu) zůstává hlavně kvůli per-bot Stop.
+- Potvrzení přidání bota: MessageBox (vrácen na žádost uživatele) + řádek v logu.
 - Minihry: detekce zavřeného klienta (`proc.HasExited` na začátku ticku → "Client closed" + konec), `stats.StartRun()` před smyčkou, lokální `SuccessText()`.
 - `GetWantedMinigame`: Memory správně mapuje na 5 (dřív dvakrát TypeWriter). TypeWriter/Memory zůstávají disabled — nejsou implementované (žádná bot třída ani offsety).
 

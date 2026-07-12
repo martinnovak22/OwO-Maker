@@ -67,7 +67,6 @@
             logList = new System.Windows.Forms.ListBox();
             button2 = new System.Windows.Forms.Button();
             buttonPauseAll = new System.Windows.Forms.Button();
-            buttonResumeAll = new System.Windows.Forms.Button();
             groupBox1.SuspendLayout();
             groupBox4.SuspendLayout();
             groupBox2.SuspendLayout();
@@ -364,7 +363,6 @@
             // tabPage2
             // 
             tabPage2.Controls.Add(button4);
-            tabPage2.Controls.Add(buttonResumeAll);
             tabPage2.Controls.Add(buttonPauseAll);
             tabPage2.Controls.Add(logList);
             tabPage2.Controls.Add(listView1);
@@ -439,8 +437,8 @@
             //
             // columnHeader9
             //
-            columnHeader9.Text = "State";
-            columnHeader9.Width = 70;
+            columnHeader9.Text = "Action";
+            columnHeader9.Width = 75;
             //
             // logList
             //
@@ -456,7 +454,7 @@
             // buttonPauseAll
             //
             buttonPauseAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            buttonPauseAll.Location = new System.Drawing.Point(159, 243);
+            buttonPauseAll.Location = new System.Drawing.Point(234, 243);
             buttonPauseAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonPauseAll.Name = "buttonPauseAll";
             buttonPauseAll.Size = new System.Drawing.Size(140, 27);
@@ -464,18 +462,6 @@
             buttonPauseAll.Text = "Pause All";
             buttonPauseAll.UseVisualStyleBackColor = true;
             buttonPauseAll.Click += buttonPauseAll_Click;
-            //
-            // buttonResumeAll
-            //
-            buttonResumeAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            buttonResumeAll.Location = new System.Drawing.Point(310, 243);
-            buttonResumeAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            buttonResumeAll.Name = "buttonResumeAll";
-            buttonResumeAll.Size = new System.Drawing.Size(140, 27);
-            buttonResumeAll.TabIndex = 10;
-            buttonResumeAll.Text = "Resume All";
-            buttonResumeAll.UseVisualStyleBackColor = true;
-            buttonResumeAll.Click += buttonResumeAll_Click;
             //
             // button2
             // 
@@ -547,7 +533,6 @@
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ListBox logList;
         private System.Windows.Forms.Button buttonPauseAll;
-        private System.Windows.Forms.Button buttonResumeAll;
         private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
