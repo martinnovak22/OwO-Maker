@@ -5,7 +5,6 @@ namespace OwO_Maker
 {
     static class Program
     {
-        public static bool botRunning { get; set; }
         public static Form1 form { get; set; }
         /// <summary>
         /// Der Haupteinstiegspunkt für die Anwendung.

@@ -1,7 +1,9 @@
-﻿using OwO_Maker.Helpers;
+﻿using OwO_Maker.Core;
+using OwO_Maker.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -18,10 +20,9 @@ namespace OwO_Maker
 
         private List<int> HWndList = new List<int>();
         private List<IntPtr> WindowList = new List<IntPtr>();
-        private List<Tuple<Thread, nint>> BotList = new List<Tuple<Thread, nint>>();
+        private List<BotEntry> BotList = new List<BotEntry>();
 
         public bool Reset { get; private set; }
-        public bool IsStarted { get; private set; }
 
         [DllImport("user32.dll")]
         static extern bool SetWindowText(IntPtr hWnd, string text);
@@ -77,6 +78,95 @@ namespace OwO_Maker
         public Form1()
         {
             InitializeComponent();
+
+            // Per-bot context menu for the "Running Bots" list (built in code, not the Designer)
+            var botMenu = new ContextMenuStrip();
+            var startItem = new ToolStripMenuItem("Start");
+            var pauseItem = new ToolStripMenuItem("Pause");
+            var resumeItem = new ToolStripMenuItem("Resume");
+            var stopItem = new ToolStripMenuItem("Stop");
+            botMenu.Items.AddRange(new ToolStripItem[] { startItem, pauseItem, resumeItem, stopItem });
+
+            botMenu.Opening += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry == null)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                var state = entry.Control.State;
+                startItem.Enabled = state == BotState.Created;
+                pauseItem.Enabled = state == BotState.Running;
+                resumeItem.Enabled = state == BotState.Paused;
+                stopItem.Enabled = state != BotState.Stopped;
+            };
+
+            startItem.Click += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry != null && entry.Control.Start() && !entry.ThreadStarted)
+                {
+                    entry.Thread.Start();
+                    entry.ThreadStarted = true;
+                }
+            };
+            pauseItem.Click += (s, e) => GetSelectedBotEntry()?.Control.Pause();
+            resumeItem.Click += (s, e) => GetSelectedBotEntry()?.Control.Resume();
+            stopItem.Click += (s, e) =>
+            {
+                var entry = GetSelectedBotEntry();
+                if (entry != null)
+                {
+                    entry.Control.Stop();
+                    RemoveBotFromList(entry.BotId);
+                }
+            };
+
+            listView1.ContextMenuStrip = botMenu;
+
+            // Reduce flicker while the Progress column is owner-drawn.
+            typeof(System.Windows.Forms.Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(listView1, true, null);
+
+            // Render the Progress column (index 5) as a proportional bar and the Action column (index 7) as a button.
+            listView1.OwnerDraw = true;
+            listView1.DrawColumnHeader += (s, e) => { e.DrawDefault = true; };
+            listView1.DrawItem += (s, e) => { /* subitems do the drawing in Details view */ };
+            listView1.DrawSubItem += ListView1_DrawSubItem;
+
+            // Clicking the Action cell toggles the bot: Start (Created) / Pause (Running) / Resume (Paused).
+            listView1.MouseClick += (s, e) =>
+            {
+                var hit = listView1.HitTest(e.Location);
+                if (hit.Item == null || hit.SubItem == null || hit.Item.SubItems.IndexOf(hit.SubItem) != 7)
+                    return;
+
+                if (!int.TryParse(hit.Item.SubItems[0].Text, out int botId))
+                    return;
+
+                var entry = BotList.Where(x => x.BotId == botId).FirstOrDefault();
+                if (entry == null)
+                    return;
+
+                switch (entry.Control.State)
+                {
+                    case BotState.Created:
+                        if (entry.Control.Start() && !entry.ThreadStarted)
+                        {
+                            entry.Thread.Start();
+                            entry.ThreadStarted = true;
+                        }
+                        break;
+                    case BotState.Running:
+                        entry.Control.Pause();
+                        break;
+                    case BotState.Paused:
+                        entry.Control.Resume();
+                        break;
+                }
+            };
+
             if (!Properties.Settings.Default.Disclaimer)
             {
                 MessageBox.Show("DISCLAIMER:\n\n IF U PAID FOR THIS SOFTWARE U GOT SCAMMED!!!\n\n\n" +
@@ -110,7 +200,8 @@ namespace OwO_Maker
             SaveSettings();
 
             Reset = true;
-            Program.botRunning = false;
+            foreach (BotEntry entry in BotList)
+                entry.Control.Stop();
             RefreshHandle();
         }
 
@@ -142,41 +233,30 @@ namespace OwO_Maker
                 return;
             }
 
-            if (!t_Level.Text.All(Char.IsDigit))
+            if (!int.TryParse(t_Level.Text, out int levelValue))
             {
                 MessageBox.Show("Invalid Number for Level!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!t_FailChance.Text.All(Char.IsDigit))
+            if (!int.TryParse(t_FailChance.Text, out int failChanceValue) || failChanceValue < 0 || failChanceValue > 100)
             {
                 MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            else if (t_FailChance.Text.All(Char.IsDigit))
+            else if (failChanceValue == 100)
             {
-                var digit = Convert.ToInt32(t_FailChance.Text);
-                if (digit < 0 || digit > 100)
-                {
-                    MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-                else if (digit == 100)
-                {
-                    MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
-            WindowList.Add(ClientHWND);
+            int amountValue = 0;
+            if (!MaxGames.Checked && (!int.TryParse(t_Times.Text, out amountValue) || amountValue <= 0))
+            {
+                MessageBox.Show("Invalid Number for Amount!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
-            Minigame Game = GetWantedMinigame();
-
-            string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
-            string Title = listBox1.SelectedItem.ToString();
-            int Amount = Convert.ToInt32(t_Times.Text);
-            int Level = Convert.ToInt32(t_Level.Text);
-            int failchance = Convert.ToInt32(t_FailChance.Text);
             uint prodkey = GetProdKey(ProductionCouponKey.Text);
 
             if (prodkey == 0)
@@ -185,19 +265,51 @@ namespace OwO_Maker
                 return;
             }
 
+            WindowList.Add(ClientHWND);
 
-            if ((int)Game == 0) { BotList.Add(new(new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 1) { BotList.Add(new(new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 2) { BotList.Add(new(new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
-            if ((int)Game == 3) { BotList.Add(new(new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey)), ClientHWND)); }
+            Minigame Game = GetWantedMinigame();
 
-            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), $"0/{t_Times.Text}" };
+            string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
+            string Title = listBox1.SelectedItem.ToString();
+            bool unlimited = MaxGames.Checked;
+            int Amount = unlimited ? int.MaxValue : amountValue;
+            int Level = levelValue;
+            int failchance = failChanceValue;
+
+
+            var entry = new BotEntry { BotId = Convert.ToInt32(BotID), ClientHwnd = ClientHWND };
+
+            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+
+            if (entry.Thread == null)
+            {
+                WindowList.Remove(ClientHWND);
+                MessageBox.Show("No Minigame selected!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            BotList.Add(entry);
+
+            entry.Control.StateChanged += s =>
+            {
+                if (s == BotState.Paused) entry.Stats.PauseRun();
+                else if (s == BotState.Running) { entry.Stats.StartRun(); entry.Stats.ResumeRun(); }
+
+                if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 7) it.SubItems[7].Text = ActionLabel(s); }));
+            };
+
+            string[] row = { BotID, Game.ToString(), t_Level.Text, "0", "0", unlimited ? "0/∞" : $"0/{t_Times.Text}", "-", ActionLabel(BotState.Created) };
             var bot = new ListViewItem(row);
             listView1.Items.Add(bot);
 
+            Log($"Bot {BotID} added: {Game}, level {t_Level.Text}, amount {(unlimited ? "∞" : t_Times.Text)}");
+
             MessageBox.Show($"{listBox1.SelectedItem.ToString()} added to the Bot List!\n" +
                 $"\nMinigame: {Game}\nWanted Level: {t_Level.Text}\n" +
-                $"Amount: {t_Times.Text}\n" +
+                $"Amount: {(unlimited ? "∞ (until points run out)" : t_Times.Text)}\n" +
                 $"Human Time: {HumanTime.Checked.ToString()}\n" +
                 $"Use Productions Coupon: {ProductionCoupon.Checked.ToString()}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -211,8 +323,6 @@ namespace OwO_Maker
             if (SawMill.Checked) { wantedGame = 1; }
             if (ShootingRange.Checked) { wantedGame = 2; }
             if (FishPond.Checked) { wantedGame = 3; }
-            if (TypeWriter.Checked) { wantedGame = 4; }
-            if (TypeWriter.Checked) { wantedGame = 5; }
 
             return (Minigame)Enum.Parse(typeof(Minigame), wantedGame.ToString(), true);
 
@@ -244,23 +354,14 @@ namespace OwO_Maker
                 return;
             }
 
-
-            if (!IsStarted)
-            {
-                MessageBox.Show("Bots aren't started yet!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
             int Amount = BotList.Count;
-            foreach (Tuple<Thread, nint> Bot in BotList)
-                Bot.Item1.Interrupt();
+            foreach (BotEntry entry in BotList)
+                entry.Control.Stop();
 
-            Program.botRunning = false;
             BotList.Clear();
             WindowList.Clear();
             listView1.Items.Clear();
-            IsStarted = false;
-            MessageBox.Show($"{Amount} Bots have been Stopped and removed from List!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Log($"{Amount} Bots have been Stopped and removed from List!");
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -271,65 +372,177 @@ namespace OwO_Maker
                 return;
             }
 
-            if (IsStarted)
+            int started = 0;
+            foreach (BotEntry entry in BotList)
             {
-                MessageBox.Show("Already Started!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (entry.Control.Start())
+                {
+                    if (!entry.ThreadStarted)
+                    {
+                        entry.Thread.Start();
+                        entry.ThreadStarted = true;
+                    }
+                    started++;
+                }
+                else if (entry.Control.State == BotState.Paused)
+                {
+                    if (entry.Control.Resume())
+                        started++;
+                }
             }
 
-            Program.botRunning = true;
-
-            Invoke(new Action(() =>
-            {
-                int Amount = BotList.Count;
-                foreach (Tuple<Thread, nint> Bot in BotList)
-                    Bot.Item1.Start();
-
-                IsStarted = true;
-                MessageBox.Show($"{Amount} Bots have been started!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }));
-
-
-        }
-        public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, bool UseProdCoupon, bool HumanTime, string progress)
-        {
-            Invoke(new Action(() =>
-            {
-                // Find item by botID
-                var item = FindListViewItemByBotID(botID);
-                string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), UseProdCoupon.ToString(), HumanTime.ToString(), progress };
-                if (item != null)
-                    for (int i = 0; i < item.SubItems.Count; i++)
-                        item.SubItems[i].Text = row[i].ToString();
-
-            }));
+            if (started == 0)
+                MessageBox.Show("No bots to start!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else
+                Log($"{started} Bots have been started!");
         }
 
-        public void RemoveBotFromList(nint botID)
+        private void buttonPauseAll_Click(object sender, EventArgs e)
         {
-            Invoke(new Action(() =>
+            int n = 0;
+            foreach (BotEntry entry in BotList)
+                if (entry.Control.Pause())
+                    n++;
+            Log($"{n} bots paused");
+        }
+
+        public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, string progress, string success)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try
             {
-                // Remove from ThreadList
-                BotList.Remove(BotList.Where(x => x.Item2 == botID).FirstOrDefault());
+                Invoke(new Action(() =>
+                {
+                    // Find item by botID
+                    var item = FindListViewItemByBotID(botID);
+                    string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), progress, success };
+                    if (item != null)
+                        for (int i = 0; i < row.Length; i++)
+                            item.SubItems[i].Text = row[i].ToString();
 
-                // Remove from ListView
-                listView1.Items.Remove(FindListViewItemByBotID((int)botID));
+                }));
+            }
+            catch (ObjectDisposedException) { } // form closed while a bot was still ticking
+            catch (InvalidOperationException) { }
+        }
 
-                // Remove from WindowList
-                WindowList.Remove(botID);
+        public void RemoveBotFromList(int botID)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try
+            {
+                Invoke(new Action(() =>
+                {
+                    var entry = BotList.Where(x => x.BotId == botID).FirstOrDefault();
+                    if (entry != null)
+                    {
+                        // Defensive: make sure the worker loop is told to stop
+                        entry.Control.Stop();
 
-                if (BotList.Count <= 0)
-                    IsStarted = false;
-            }));
+                        // Remove from BotList
+                        BotList.Remove(entry);
+
+                        // Remove the client HWND so it can be added again later
+                        WindowList.Remove(entry.ClientHwnd);
+                    }
+
+                    // Remove from ListView
+                    listView1.Items.Remove(FindListViewItemByBotID(botID));
+                }));
+            }
+            catch (ObjectDisposedException) { } // form closed while a bot was still ticking
+            catch (InvalidOperationException) { }
+        }
+
+        private BotEntry GetSelectedBotEntry()
+        {
+            if (listView1.SelectedItems.Count == 0)
+                return null;
+
+            if (!int.TryParse(listView1.SelectedItems[0].SubItems[0].Text, out int botID))
+                return null;
+
+            return BotList.Where(x => x.BotId == botID).FirstOrDefault();
         }
 
         private ListViewItem FindListViewItemByBotID(int BotID)
         {
             foreach (ListViewItem item in listView1.Items)
-                foreach (ListViewItem.ListViewSubItem subItem in item.SubItems)
-                    if (subItem.Text == BotID.ToString())
-                        return item;
+                if (item.SubItems[0].Text == BotID.ToString())
+                    return item;
             return null;
+        }
+
+        private static string ActionLabel(BotState state)
+        {
+            return state switch
+            {
+                BotState.Created => "Start",
+                BotState.Running => "Pause",
+                BotState.Paused => "Resume",
+                _ => "-",
+            };
+        }
+
+        private void ListView1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+        {
+            string text = e.SubItem?.Text ?? string.Empty;
+
+            // The Action column (index 7) renders as a clickable button.
+            if (e.ColumnIndex == 7)
+            {
+                var buttonBounds = Rectangle.Inflate(e.Bounds, -1, -1);
+                ButtonRenderer.DrawButton(e.Graphics, buttonBounds, text, e.SubItem.Font, false,
+                    System.Windows.Forms.VisualStyles.PushButtonState.Normal);
+                return;
+            }
+
+            // Only the Progress column (index 5) gets the custom bar; everything else is default.
+            var parts = text.Split('/');
+            if (e.ColumnIndex != 5 || parts.Length != 2 ||
+                !int.TryParse(parts[0], out int done) || !int.TryParse(parts[1], out int total) || total <= 0)
+            {
+                e.DrawDefault = true;
+                return;
+            }
+
+            bool selected = e.Item.Selected;
+            Color backColor = selected ? SystemColors.Highlight : e.SubItem.BackColor;
+            using (var bg = new SolidBrush(backColor))
+                e.Graphics.FillRectangle(bg, e.Bounds);
+
+            double fraction = done / (double)total;
+            if (fraction < 0) fraction = 0;
+            if (fraction > 1) fraction = 1;
+
+            var barBounds = Rectangle.Inflate(e.Bounds, -2, -2);
+            int barWidth = (int)(barBounds.Width * fraction);
+            if (barWidth > 0)
+                using (var bar = new SolidBrush(Color.FromArgb(120, 180, 120)))
+                    e.Graphics.FillRectangle(bar, barBounds.X, barBounds.Y, barWidth, barBounds.Height);
+
+            Color textColor = selected ? SystemColors.HighlightText : e.SubItem.ForeColor;
+            TextRenderer.DrawText(e.Graphics, text, e.SubItem.Font, e.Bounds, textColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+
+        public void Log(string message)
+        {
+            if (IsDisposed) return;
+            BeginInvoke(new Action(() =>
+            {
+                if (IsDisposed) return;
+                logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+                while (logList.Items.Count > 500)
+                    logList.Items.RemoveAt(0);
+                logList.TopIndex = logList.Items.Count - 1;
+            }));
+        }
+
+        public void NotifyBotEnded(int botID, string message)
+        {
+            Log($"Bot {botID}: {message}");
+            System.Media.SystemSounds.Asterisk.Play();
         }
 
         private void SaveSettings()
@@ -349,6 +562,14 @@ namespace OwO_Maker
                     Properties.Settings.Default.ProdKey = ProductionCouponKey.Text;
             }
 
+            if (int.TryParse(t_Times.Text, out int savedTimes) && savedTimes > 0)
+                Properties.Settings.Default.Times = t_Times.Text;
+
+            Properties.Settings.Default.MaxGames = MaxGames.Checked;
+
+            if (int.TryParse(t_Level.Text, out int savedLevel) && savedLevel >= 1 && savedLevel <= 5)
+                Properties.Settings.Default.Level = t_Level.Text;
+
             uint lastMinigame = 0;
             if (StoneQuarry.Checked)
                 lastMinigame = 0;
@@ -358,10 +579,6 @@ namespace OwO_Maker
                 lastMinigame = 2;
             else if (FishPond.Checked)
                 lastMinigame = 3;
-            else if (TypeWriter.Checked)
-                lastMinigame = 4;
-            else if (Memory.Checked)
-                lastMinigame = 5;
 
             Properties.Settings.Default.LastMinigame = lastMinigame;
 
@@ -384,6 +601,14 @@ namespace OwO_Maker
                     ProductionCouponKey.Text = Properties.Settings.Default.ProdKey;
             }
 
+            if (int.TryParse(Properties.Settings.Default.Times, out int loadedTimes) && loadedTimes > 0)
+                t_Times.Text = Properties.Settings.Default.Times;
+
+            MaxGames.Checked = Properties.Settings.Default.MaxGames;
+
+            if (int.TryParse(Properties.Settings.Default.Level, out int loadedLevel) && loadedLevel >= 1 && loadedLevel <= 5)
+                t_Level.Text = Properties.Settings.Default.Level;
+
             switch (Properties.Settings.Default.LastMinigame)
             {
                 case 0:
@@ -398,16 +623,15 @@ namespace OwO_Maker
                 case 3:
                     FishPond.Checked = true;
                     break;
-                case 4:
-                    TypeWriter.Checked = true;
-                    break;
-                case 5:
-                    Memory.Checked = true;
-                    break;
                 default:
                     StoneQuarry.Checked = true;
                     break;
             }
+        }
+
+        private void MaxGames_CheckedChanged(object sender, EventArgs e)
+        {
+            t_Times.Enabled = !MaxGames.Checked;
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)

@@ -37,6 +37,7 @@
             ProductionCouponKey = new System.Windows.Forms.ComboBox();
             HumanTime = new System.Windows.Forms.CheckBox();
             t_Times = new System.Windows.Forms.TextBox();
+            MaxGames = new System.Windows.Forms.CheckBox();
             label8 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
@@ -46,8 +47,6 @@
             ProductionCoupon = new System.Windows.Forms.CheckBox();
             button5 = new System.Windows.Forms.Button();
             groupBox2 = new System.Windows.Forms.GroupBox();
-            Memory = new System.Windows.Forms.RadioButton();
-            TypeWriter = new System.Windows.Forms.RadioButton();
             ShootingRange = new System.Windows.Forms.RadioButton();
             StoneQuarry = new System.Windows.Forms.RadioButton();
             SawMill = new System.Windows.Forms.RadioButton();
@@ -62,10 +61,12 @@
             columnHeader7 = new System.Windows.Forms.ColumnHeader();
             columnHeader4 = new System.Windows.Forms.ColumnHeader();
             columnHeader5 = new System.Windows.Forms.ColumnHeader();
-            columnHeader3 = new System.Windows.Forms.ColumnHeader();
-            columnHeader6 = new System.Windows.Forms.ColumnHeader();
             columnHeader8 = new System.Windows.Forms.ColumnHeader();
+            columnHeader10 = new System.Windows.Forms.ColumnHeader();
+            columnHeader9 = new System.Windows.Forms.ColumnHeader();
+            logList = new System.Windows.Forms.ListBox();
             button2 = new System.Windows.Forms.Button();
+            buttonPauseAll = new System.Windows.Forms.Button();
             groupBox1.SuspendLayout();
             groupBox4.SuspendLayout();
             groupBox2.SuspendLayout();
@@ -118,6 +119,7 @@
             groupBox4.Controls.Add(ProductionCouponKey);
             groupBox4.Controls.Add(HumanTime);
             groupBox4.Controls.Add(t_Times);
+            groupBox4.Controls.Add(MaxGames);
             groupBox4.Controls.Add(label8);
             groupBox4.Controls.Add(label3);
             groupBox4.Controls.Add(label2);
@@ -170,10 +172,22 @@
             t_Times.Location = new System.Drawing.Point(59, 50);
             t_Times.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             t_Times.Name = "t_Times";
-            t_Times.Size = new System.Drawing.Size(134, 23);
+            t_Times.Size = new System.Drawing.Size(84, 23);
             t_Times.TabIndex = 7;
             t_Times.Text = "20";
-            // 
+            //
+            // MaxGames
+            //
+            MaxGames.AutoSize = true;
+            MaxGames.Location = new System.Drawing.Point(147, 52);
+            MaxGames.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            MaxGames.Name = "MaxGames";
+            MaxGames.Size = new System.Drawing.Size(48, 19);
+            MaxGames.TabIndex = 8;
+            MaxGames.Text = "Max";
+            MaxGames.UseVisualStyleBackColor = true;
+            MaxGames.CheckedChanged += MaxGames_CheckedChanged;
+            //
             // label8
             // 
             label8.AutoSize = true;
@@ -264,8 +278,6 @@
             // 
             // groupBox2
             // 
-            groupBox2.Controls.Add(Memory);
-            groupBox2.Controls.Add(TypeWriter);
             groupBox2.Controls.Add(ShootingRange);
             groupBox2.Controls.Add(StoneQuarry);
             groupBox2.Controls.Add(SawMill);
@@ -278,31 +290,7 @@
             groupBox2.TabIndex = 3;
             groupBox2.TabStop = false;
             groupBox2.Text = "Minigames";
-            // 
-            // Memory
-            // 
-            Memory.AutoSize = true;
-            Memory.Enabled = false;
-            Memory.Location = new System.Drawing.Point(8, 153);
-            Memory.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            Memory.Name = "Memory";
-            Memory.Size = new System.Drawing.Size(110, 19);
-            Memory.TabIndex = 5;
-            Memory.Text = "Memory (Event)";
-            Memory.UseVisualStyleBackColor = true;
-            // 
-            // TypeWriter
-            // 
-            TypeWriter.AutoSize = true;
-            TypeWriter.Enabled = false;
-            TypeWriter.Location = new System.Drawing.Point(8, 128);
-            TypeWriter.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            TypeWriter.Name = "TypeWriter";
-            TypeWriter.Size = new System.Drawing.Size(119, 19);
-            TypeWriter.TabIndex = 4;
-            TypeWriter.Text = "Typewriter (Event)";
-            TypeWriter.UseVisualStyleBackColor = true;
-            // 
+            //
             // ShootingRange
             // 
             ShootingRange.AutoSize = true;
@@ -375,6 +363,8 @@
             // tabPage2
             // 
             tabPage2.Controls.Add(button4);
+            tabPage2.Controls.Add(buttonPauseAll);
+            tabPage2.Controls.Add(logList);
             tabPage2.Controls.Add(listView1);
             tabPage2.Controls.Add(button2);
             tabPage2.Location = new System.Drawing.Point(4, 24);
@@ -388,10 +378,11 @@
             // 
             // button4
             // 
-            button4.Location = new System.Drawing.Point(451, 243);
+            button4.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            button4.Location = new System.Drawing.Point(461, 243);
             button4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button4.Name = "button4";
-            button4.Size = new System.Drawing.Size(150, 27);
+            button4.Size = new System.Drawing.Size(140, 27);
             button4.TabIndex = 7;
             button4.Text = "Stop / Delete All";
             button4.UseVisualStyleBackColor = true;
@@ -400,12 +391,12 @@
             // listView1
             // 
             listView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader3, columnHeader6, columnHeader8 });
+            listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader8, columnHeader10, columnHeader9 });
             listView1.ImeMode = System.Windows.Forms.ImeMode.On;
             listView1.Location = new System.Drawing.Point(7, 7);
             listView1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             listView1.Name = "listView1";
-            listView1.Size = new System.Drawing.Size(594, 225);
+            listView1.Size = new System.Drawing.Size(594, 115);
             listView1.TabIndex = 1;
             listView1.UseCompatibleStateImageBehavior = false;
             listView1.View = System.Windows.Forms.View.Details;
@@ -434,27 +425,51 @@
             // 
             columnHeader5.Text = "Prod Points";
             columnHeader5.Width = 75;
-            // 
-            // columnHeader3
-            // 
-            columnHeader3.Text = "Use Prod. Coupon";
-            columnHeader3.Width = 110;
-            // 
-            // columnHeader6
-            // 
-            columnHeader6.Text = "Human Time";
-            columnHeader6.Width = 83;
-            // 
+            //
             // columnHeader8
-            // 
+            //
             columnHeader8.Text = "Progress";
-            // 
+            //
+            // columnHeader10
+            //
+            columnHeader10.Text = "Success";
+            columnHeader10.Width = 90;
+            //
+            // columnHeader9
+            //
+            columnHeader9.Text = "Action";
+            columnHeader9.Width = 75;
+            //
+            // logList
+            //
+            logList.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            logList.FormattingEnabled = true;
+            logList.IntegralHeight = false;
+            logList.Location = new System.Drawing.Point(7, 128);
+            logList.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            logList.Name = "logList";
+            logList.Size = new System.Drawing.Size(594, 105);
+            logList.TabIndex = 8;
+            //
+            // buttonPauseAll
+            //
+            buttonPauseAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            buttonPauseAll.Location = new System.Drawing.Point(234, 243);
+            buttonPauseAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            buttonPauseAll.Name = "buttonPauseAll";
+            buttonPauseAll.Size = new System.Drawing.Size(140, 27);
+            buttonPauseAll.TabIndex = 9;
+            buttonPauseAll.Text = "Pause All";
+            buttonPauseAll.UseVisualStyleBackColor = true;
+            buttonPauseAll.Click += buttonPauseAll_Click;
+            //
             // button2
             // 
+            button2.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             button2.Location = new System.Drawing.Point(8, 243);
             button2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button2.Name = "button2";
-            button2.Size = new System.Drawing.Size(150, 27);
+            button2.Size = new System.Drawing.Size(140, 27);
             button2.TabIndex = 5;
             button2.Text = "Start All";
             button2.UseVisualStyleBackColor = true;
@@ -509,18 +524,19 @@
         private System.Windows.Forms.TextBox t_Times;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ColumnHeader columnHeader2;
-        private System.Windows.Forms.ColumnHeader columnHeader3;
         private System.Windows.Forms.ColumnHeader columnHeader7;
         private System.Windows.Forms.ColumnHeader columnHeader4;
         private System.Windows.Forms.CheckBox ProductionCoupon;
         private System.Windows.Forms.CheckBox HumanTime;
-        private System.Windows.Forms.ColumnHeader columnHeader6;
         private System.Windows.Forms.ColumnHeader columnHeader8;
+        private System.Windows.Forms.ColumnHeader columnHeader10;
+        private System.Windows.Forms.ColumnHeader columnHeader9;
+        private System.Windows.Forms.ListBox logList;
+        private System.Windows.Forms.Button buttonPauseAll;
+        private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox t_FailChance;
-        private System.Windows.Forms.RadioButton Memory;
-        private System.Windows.Forms.RadioButton TypeWriter;
         private System.Windows.Forms.ColumnHeader columnHeader5;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.ComboBox ProductionCouponKey;
