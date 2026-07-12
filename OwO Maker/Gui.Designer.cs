@@ -392,6 +392,7 @@
             // 
             listView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader8, columnHeader10, columnHeader9 });
+            listView1.FullRowSelect = true;
             listView1.ImeMode = System.Windows.Forms.ImeMode.On;
             listView1.Location = new System.Drawing.Point(7, 7);
             listView1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
