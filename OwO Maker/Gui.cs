@@ -201,33 +201,25 @@ namespace OwO_Maker
                 return;
             }
 
-            if (!t_Level.Text.All(Char.IsDigit))
+            if (!int.TryParse(t_Level.Text, out int levelValue))
             {
                 MessageBox.Show("Invalid Number for Level!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!t_FailChance.Text.All(Char.IsDigit))
+            if (!int.TryParse(t_FailChance.Text, out int failChanceValue) || failChanceValue < 0 || failChanceValue > 100)
             {
                 MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            else if (t_FailChance.Text.All(Char.IsDigit))
+            else if (failChanceValue == 100)
             {
-                var digit = Convert.ToInt32(t_FailChance.Text);
-                if (digit < 0 || digit > 100)
-                {
-                    MessageBox.Show("Invalid Number for Random Fail Min!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-                else if (digit == 100)
-                {
-                    MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                MessageBox.Show("a Fail Chance of 100 will result into failing everytime!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
-            if (!MaxGames.Checked && (t_Times.Text.Length == 0 || !t_Times.Text.All(Char.IsDigit) || Convert.ToInt32(t_Times.Text) == 0))
+            int amountValue = 0;
+            if (!MaxGames.Checked && (!int.TryParse(t_Times.Text, out amountValue) || amountValue <= 0))
             {
                 MessageBox.Show("Invalid Number for Amount!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -248,9 +240,9 @@ namespace OwO_Maker
             string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
             string Title = listBox1.SelectedItem.ToString();
             bool unlimited = MaxGames.Checked;
-            int Amount = unlimited ? int.MaxValue : Convert.ToInt32(t_Times.Text);
-            int Level = Convert.ToInt32(t_Level.Text);
-            int failchance = Convert.ToInt32(t_FailChance.Text);
+            int Amount = unlimited ? int.MaxValue : amountValue;
+            int Level = levelValue;
+            int failchance = failChanceValue;
 
 
             var entry = new BotEntry { BotId = Convert.ToInt32(BotID), ClientHwnd = ClientHWND };
@@ -260,12 +252,20 @@ namespace OwO_Maker
             if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
             if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
 
+            if (entry.Thread == null)
+            {
+                // TypeWriter/Memory have no bot implementation; can happen when LastMinigame was persisted as 4/5
+                WindowList.Remove(ClientHWND);
+                MessageBox.Show("Selected minigame is not implemented!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             BotList.Add(entry);
 
             entry.Control.StateChanged += s =>
             {
                 if (s == BotState.Paused) entry.Stats.PauseRun();
-                else if (s == BotState.Running) entry.Stats.ResumeRun();
+                else if (s == BotState.Running) { entry.Stats.StartRun(); entry.Stats.ResumeRun(); }
 
                 if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 7) it.SubItems[7].Text = s.ToString(); }));
             };
@@ -381,38 +381,50 @@ namespace OwO_Maker
         }
         public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, string progress, string success)
         {
-            Invoke(new Action(() =>
+            if (IsDisposed || !IsHandleCreated) return;
+            try
             {
-                // Find item by botID
-                var item = FindListViewItemByBotID(botID);
-                string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), progress, success };
-                if (item != null)
-                    for (int i = 0; i < row.Length; i++)
-                        item.SubItems[i].Text = row[i].ToString();
+                Invoke(new Action(() =>
+                {
+                    // Find item by botID
+                    var item = FindListViewItemByBotID(botID);
+                    string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), progress, success };
+                    if (item != null)
+                        for (int i = 0; i < row.Length; i++)
+                            item.SubItems[i].Text = row[i].ToString();
 
-            }));
+                }));
+            }
+            catch (ObjectDisposedException) { } // form closed while a bot was still ticking
+            catch (InvalidOperationException) { }
         }
 
         public void RemoveBotFromList(int botID)
         {
-            Invoke(new Action(() =>
+            if (IsDisposed || !IsHandleCreated) return;
+            try
             {
-                var entry = BotList.Where(x => x.BotId == botID).FirstOrDefault();
-                if (entry != null)
+                Invoke(new Action(() =>
                 {
-                    // Defensive: make sure the worker loop is told to stop
-                    entry.Control.Stop();
+                    var entry = BotList.Where(x => x.BotId == botID).FirstOrDefault();
+                    if (entry != null)
+                    {
+                        // Defensive: make sure the worker loop is told to stop
+                        entry.Control.Stop();
 
-                    // Remove from BotList
-                    BotList.Remove(entry);
+                        // Remove from BotList
+                        BotList.Remove(entry);
 
-                    // Remove the client HWND so it can be added again later
-                    WindowList.Remove(entry.ClientHwnd);
-                }
+                        // Remove the client HWND so it can be added again later
+                        WindowList.Remove(entry.ClientHwnd);
+                    }
 
-                // Remove from ListView
-                listView1.Items.Remove(FindListViewItemByBotID(botID));
-            }));
+                    // Remove from ListView
+                    listView1.Items.Remove(FindListViewItemByBotID(botID));
+                }));
+            }
+            catch (ObjectDisposedException) { } // form closed while a bot was still ticking
+            catch (InvalidOperationException) { }
         }
 
         private BotEntry GetSelectedBotEntry()
@@ -502,12 +514,12 @@ namespace OwO_Maker
                     Properties.Settings.Default.ProdKey = ProductionCouponKey.Text;
             }
 
-            if (t_Times.Text.Length > 0 && t_Times.Text.All(Char.IsDigit) && Convert.ToInt32(t_Times.Text) > 0)
+            if (int.TryParse(t_Times.Text, out int savedTimes) && savedTimes > 0)
                 Properties.Settings.Default.Times = t_Times.Text;
 
             Properties.Settings.Default.MaxGames = MaxGames.Checked;
 
-            if (t_Level.Text.Length > 0 && t_Level.Text.All(Char.IsDigit) && Convert.ToInt32(t_Level.Text) >= 1 && Convert.ToInt32(t_Level.Text) <= 5)
+            if (int.TryParse(t_Level.Text, out int savedLevel) && savedLevel >= 1 && savedLevel <= 5)
                 Properties.Settings.Default.Level = t_Level.Text;
 
             uint lastMinigame = 0;
@@ -545,12 +557,12 @@ namespace OwO_Maker
                     ProductionCouponKey.Text = Properties.Settings.Default.ProdKey;
             }
 
-            if (Properties.Settings.Default.Times.Length > 0 && Properties.Settings.Default.Times.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Times) > 0)
+            if (int.TryParse(Properties.Settings.Default.Times, out int loadedTimes) && loadedTimes > 0)
                 t_Times.Text = Properties.Settings.Default.Times;
 
             MaxGames.Checked = Properties.Settings.Default.MaxGames;
 
-            if (Properties.Settings.Default.Level.Length > 0 && Properties.Settings.Default.Level.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Level) >= 1 && Convert.ToInt32(Properties.Settings.Default.Level) <= 5)
+            if (int.TryParse(Properties.Settings.Default.Level, out int loadedLevel) && loadedLevel >= 1 && loadedLevel <= 5)
                 t_Level.Text = Properties.Settings.Default.Level;
 
             switch (Properties.Settings.Default.LastMinigame)

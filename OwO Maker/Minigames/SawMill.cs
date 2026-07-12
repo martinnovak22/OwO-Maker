@@ -39,8 +39,6 @@ namespace OwO_Maker.Minigames
 
             string SuccessText() => stats.Attempts == 0 ? "-" : $"{stats.Successes}/{stats.Attempts} ({(int)Math.Round(stats.SuccessRate * 100)} %)";
 
-            stats.StartRun();
-
             while (control.ShouldContinue)
             {
                 await control.WaitIfPausedAsync();
@@ -163,14 +161,14 @@ namespace OwO_Maker.Minigames
                             if (productionPoints == mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints))
                             {
                                 Program.form.RemoveBotFromList(BotID);
-                                Program.form.NotifyBotEnded(BotID, $"Failed to use Productions Coupon! — Wrong Key selected? — No Item in selected Slot? — Empty Coupons? — {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()}");
+                                Program.form.NotifyBotEnded(BotID, $"Failed to use Productions Coupon! — Wrong Key selected? — No Item in selected Slot? — Empty Coupons? — {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()} — {stats.GetSummary()}");
                                 return;
                             }
                         }
                         else
                         {
                             Program.form.RemoveBotFromList(BotID);
-                            Program.form.NotifyBotEnded(BotID, "no production points left!");
+                            Program.form.NotifyBotEnded(BotID, unlimited ? $"Done! Ran out of production points. {stats.GetSummary()}" : $"no production points left! {stats.GetSummary()}");
                             return;
                         }
                     }

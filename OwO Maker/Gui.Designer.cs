@@ -408,6 +408,7 @@
             // 
             // button4
             // 
+            button4.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             button4.Location = new System.Drawing.Point(461, 243);
             button4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button4.Name = "button4";
@@ -419,7 +420,7 @@
             // 
             // listView1
             // 
-            listView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            listView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { columnHeader1, columnHeader2, columnHeader7, columnHeader4, columnHeader5, columnHeader8, columnHeader10, columnHeader9 });
             listView1.ImeMode = System.Windows.Forms.ImeMode.On;
             listView1.Location = new System.Drawing.Point(7, 7);
@@ -482,6 +483,7 @@
             //
             // buttonPauseAll
             //
+            buttonPauseAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             buttonPauseAll.Location = new System.Drawing.Point(159, 243);
             buttonPauseAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonPauseAll.Name = "buttonPauseAll";
@@ -493,6 +495,7 @@
             //
             // buttonResumeAll
             //
+            buttonResumeAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             buttonResumeAll.Location = new System.Drawing.Point(310, 243);
             buttonResumeAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonResumeAll.Name = "buttonResumeAll";
@@ -504,6 +507,7 @@
             //
             // button2
             // 
+            button2.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             button2.Location = new System.Drawing.Point(8, 243);
             button2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button2.Name = "button2";
