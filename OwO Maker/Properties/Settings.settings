@@ -23,6 +23,9 @@
     <Setting Name="Level" Type="System.String" Scope="User">
       <Value Profile="(Default)">5</Value>
     </Setting>
+    <Setting Name="MaxGames" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="LastMinigame" Type="System.UInt32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>

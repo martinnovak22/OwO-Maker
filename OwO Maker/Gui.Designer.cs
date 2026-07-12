@@ -37,6 +37,7 @@
             ProductionCouponKey = new System.Windows.Forms.ComboBox();
             HumanTime = new System.Windows.Forms.CheckBox();
             t_Times = new System.Windows.Forms.TextBox();
+            MaxGames = new System.Windows.Forms.CheckBox();
             label8 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
@@ -119,6 +120,7 @@
             groupBox4.Controls.Add(ProductionCouponKey);
             groupBox4.Controls.Add(HumanTime);
             groupBox4.Controls.Add(t_Times);
+            groupBox4.Controls.Add(MaxGames);
             groupBox4.Controls.Add(label8);
             groupBox4.Controls.Add(label3);
             groupBox4.Controls.Add(label2);
@@ -171,10 +173,22 @@
             t_Times.Location = new System.Drawing.Point(59, 50);
             t_Times.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             t_Times.Name = "t_Times";
-            t_Times.Size = new System.Drawing.Size(134, 23);
+            t_Times.Size = new System.Drawing.Size(84, 23);
             t_Times.TabIndex = 7;
             t_Times.Text = "20";
-            // 
+            //
+            // MaxGames
+            //
+            MaxGames.AutoSize = true;
+            MaxGames.Location = new System.Drawing.Point(147, 52);
+            MaxGames.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            MaxGames.Name = "MaxGames";
+            MaxGames.Size = new System.Drawing.Size(48, 19);
+            MaxGames.TabIndex = 8;
+            MaxGames.Text = "Max";
+            MaxGames.UseVisualStyleBackColor = true;
+            MaxGames.CheckedChanged += MaxGames_CheckedChanged;
+            //
             // label8
             // 
             label8.AutoSize = true;
@@ -523,6 +537,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader6;
         private System.Windows.Forms.ColumnHeader columnHeader8;
         private System.Windows.Forms.ColumnHeader columnHeader9;
+        private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox t_FailChance;

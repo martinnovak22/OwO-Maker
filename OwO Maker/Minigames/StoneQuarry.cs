@@ -13,7 +13,7 @@ namespace OwO_Maker.Minigames
 
         Mem mem = new Mem();
 
-        public async void RunTask(IntPtr hWnd, int Amount, ButtonResolutionHelper.ButtonResolution buttons, int BotID, int level, bool HumanTime, bool UseProdCoupon, int FailChance, uint ProductionsCouponKey, BotControl control, BotStats stats)
+        public async void RunTask(IntPtr hWnd, int Amount, ButtonResolutionHelper.ButtonResolution buttons, int BotID, int level, bool HumanTime, bool UseProdCoupon, int FailChance, uint ProductionsCouponKey, BotControl control, BotStats stats, bool unlimited)
         {
             var proc = mem.FindProcessByHandle(hWnd);
 
@@ -70,7 +70,7 @@ namespace OwO_Maker.Minigames
 
                     var status = SharedRoutines.GetStatus(mem, currentMiniGame);
 
-                    Program.form.UpdateStatus(BotID, "StoneQuarry", level, points, productionPoints, UseProdCoupon, HumanTime, $"{playedGames}/{Amount}");
+                    Program.form.UpdateStatus(BotID, "StoneQuarry", level, points, productionPoints, UseProdCoupon, HumanTime, $"{playedGames}/{(unlimited ? "∞" : Amount.ToString())}");
 
                     if (status is Structs.Status.Playing)
                     {
@@ -124,7 +124,7 @@ namespace OwO_Maker.Minigames
 
                         if (playedGames >= Amount)
                         {
-                            Program.form.UpdateStatus(BotID, "StoneQuarry", level, points, productionPoints, UseProdCoupon, HumanTime, $"{playedGames}/{Amount}");
+                            Program.form.UpdateStatus(BotID, "StoneQuarry", level, points, productionPoints, UseProdCoupon, HumanTime, $"{playedGames}/{(unlimited ? "∞" : Amount.ToString())}");
                             Program.form.RemoveBotFromList(BotID);
                             MessageBox.Show($"Bot: {BotID} Done!\n\n{stats.GetSummary()}");
                             return;
@@ -149,7 +149,7 @@ namespace OwO_Maker.Minigames
                             else
                             {
                                 Program.form.RemoveBotFromList(BotID);
-                                MessageBox.Show($"Bot: {BotID} no production points left!\n\n{stats.GetSummary()}");
+                                MessageBox.Show(unlimited ? $"Bot: {BotID} Done! Ran out of production points.\n\n{stats.GetSummary()}" : $"Bot: {BotID} no production points left!\n\n{stats.GetSummary()}");
                                 return;
                             }
                         }

@@ -217,15 +217,12 @@ namespace OwO_Maker
                 }
             }
 
-            WindowList.Add(ClientHWND);
+            if (!MaxGames.Checked && (t_Times.Text.Length == 0 || !t_Times.Text.All(Char.IsDigit) || Convert.ToInt32(t_Times.Text) == 0))
+            {
+                MessageBox.Show("Invalid Number for Amount!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
-            Minigame Game = GetWantedMinigame();
-
-            string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
-            string Title = listBox1.SelectedItem.ToString();
-            int Amount = Convert.ToInt32(t_Times.Text);
-            int Level = Convert.ToInt32(t_Level.Text);
-            int failchance = Convert.ToInt32(t_FailChance.Text);
             uint prodkey = GetProdKey(ProductionCouponKey.Text);
 
             if (prodkey == 0)
@@ -234,25 +231,36 @@ namespace OwO_Maker
                 return;
             }
 
+            WindowList.Add(ClientHWND);
+
+            Minigame Game = GetWantedMinigame();
+
+            string BotID = listBox1.SelectedItem.ToString().Replace("NosTale", "").Replace("- (", "").Replace(")", "").Replace(" ", "");
+            string Title = listBox1.SelectedItem.ToString();
+            bool unlimited = MaxGames.Checked;
+            int Amount = unlimited ? int.MaxValue : Convert.ToInt32(t_Times.Text);
+            int Level = Convert.ToInt32(t_Level.Text);
+            int failchance = Convert.ToInt32(t_FailChance.Text);
+
 
             var entry = new BotEntry { BotId = Convert.ToInt32(BotID), ClientHwnd = ClientHWND };
 
-            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
-            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
-            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
-            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats)); }
+            if ((int)Game == 0) { entry.Thread = new Thread(() => new Minigames.StoneQuarry().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 1) { entry.Thread = new Thread(() => new Minigames.SawMill().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 2) { entry.Thread = new Thread(() => new Minigames.ShootingRange().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
+            if ((int)Game == 3) { entry.Thread = new Thread(() => new Minigames.FishPond().RunTask(FindWindow("TNosTaleMainF", Title), Amount, buttons, Convert.ToInt32(BotID), Level, HumanTime.Checked, ProductionCoupon.Checked, failchance, prodkey, entry.Control, entry.Stats, unlimited)); }
 
             BotList.Add(entry);
 
             entry.Control.StateChanged += s => { if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 8) it.SubItems[8].Text = s.ToString(); })); };
 
-            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), $"0/{t_Times.Text}", "Created" };
+            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), unlimited ? "0/∞" : $"0/{t_Times.Text}", "Created" };
             var bot = new ListViewItem(row);
             listView1.Items.Add(bot);
 
             MessageBox.Show($"{listBox1.SelectedItem.ToString()} added to the Bot List!\n" +
                 $"\nMinigame: {Game}\nWanted Level: {t_Level.Text}\n" +
-                $"Amount: {t_Times.Text}\n" +
+                $"Amount: {(unlimited ? "∞ (until points run out)" : t_Times.Text)}\n" +
                 $"Human Time: {HumanTime.Checked.ToString()}\n" +
                 $"Use Productions Coupon: {ProductionCoupon.Checked.ToString()}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -416,6 +424,8 @@ namespace OwO_Maker
             if (t_Times.Text.Length > 0 && t_Times.Text.All(Char.IsDigit) && Convert.ToInt32(t_Times.Text) > 0)
                 Properties.Settings.Default.Times = t_Times.Text;
 
+            Properties.Settings.Default.MaxGames = MaxGames.Checked;
+
             if (t_Level.Text.Length > 0 && t_Level.Text.All(Char.IsDigit) && Convert.ToInt32(t_Level.Text) >= 1 && Convert.ToInt32(t_Level.Text) <= 5)
                 Properties.Settings.Default.Level = t_Level.Text;
 
@@ -457,6 +467,8 @@ namespace OwO_Maker
             if (Properties.Settings.Default.Times.Length > 0 && Properties.Settings.Default.Times.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Times) > 0)
                 t_Times.Text = Properties.Settings.Default.Times;
 
+            MaxGames.Checked = Properties.Settings.Default.MaxGames;
+
             if (Properties.Settings.Default.Level.Length > 0 && Properties.Settings.Default.Level.All(Char.IsDigit) && Convert.ToInt32(Properties.Settings.Default.Level) >= 1 && Convert.ToInt32(Properties.Settings.Default.Level) <= 5)
                 t_Level.Text = Properties.Settings.Default.Level;
 
@@ -484,6 +496,11 @@ namespace OwO_Maker
                     StoneQuarry.Checked = true;
                     break;
             }
+        }
+
+        private void MaxGames_CheckedChanged(object sender, EventArgs e)
+        {
+            t_Times.Enabled = !MaxGames.Checked;
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)

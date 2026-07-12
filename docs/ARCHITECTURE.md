@@ -78,6 +78,8 @@ App: `BotEntry` (OwO Maker/BotEntry.cs) = BotId + ClientHwnd + Thread + Control 
 - Stop (per bot i All) = `Control.Stop()`; smyčka tiše skončí na dalším ticku. `Thread.Interrupt` odstraněn (byl stejně neúčinný — `RunTask` je `async void`, po prvním awaitu běží na thread poolu).
 - Opravené bugy: `RemoveBotFromList(int)` maže podle BotId a z `WindowList` odebírá `ClientHwnd` (dřív mazal BotID z listu HWNDů → klient nešel znovu přidat); `FindListViewItemByBotID` matchuje jen sloupec 0; `UpdateStatus` iteruje přes 8 polí row (nesahá na State sloupec); `IsStarted` odstraněn.
 
+**Max režim (checkbox `MaxGames` u pole Times):** zamkne `t_Times` a bot hraje, dokud stačí produkční body — interně `Amount = int.MaxValue` (funguje přirozeně: `playedGames >= Amount` nikdy nenastane a `CollectReward` vždy kliká Try Again), progress se zobrazuje `X/∞` a dojití bodů je normální „Done! Ran out of production points." místo chyby. `RunTask` má poslední parametr `bool unlimited`. Checkbox se persistuje jako setting `MaxGames`; persistují se i `Times` a `Level`.
+
 Lokální vývoj na macOS: `~/.dotnet/dotnet` (SDK 8; systémový je v7). App jde zkompilovat i tady: `dotnet build "OwO Maker/OwO Maker.csproj" -p:EnableWindowsTargeting=true`.
 
 ## Testovatelnost
