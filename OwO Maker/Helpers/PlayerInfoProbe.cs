@@ -25,13 +25,14 @@ namespace OwO_Maker.Helpers
                 var miniGameManagerPattern = mem.FindPattern(Structs.Pattern.TMiniGameManager);
                 lines.Add($"TMiniGameManager pattern (sanity check): {(miniGameManagerPattern == 0 ? "NOT FOUND" : $"found at 0x{(uint)miniGameManagerPattern:X8}")}");
 
-                var patternAddr = mem.FindPattern(Structs.Pattern.TPlayerManager);
-                if (patternAddr == 0)
+                var matches = mem.FindPatterns(Structs.Pattern.TPlayerManager);
+                if (matches.Count == 0)
                 {
                     lines.Add("TPlayerManager pattern NOT FOUND — signature does not match this client version.");
                     return lines;
                 }
-                lines.Add($"TPlayerManager pattern found at 0x{(uint)patternAddr:X8}");
+                var patternAddr = (nint)matches[0];
+                lines.Add($"TPlayerManager pattern: {matches.Count} match(es), using first at 0x{(uint)patternAddr:X8}");
 
                 var staticAddr = mem.ReadMemory<uint>(patternAddr + 6);
                 lines.Add($"Static pointer address (A1 operand): 0x{staticAddr:X8}");
@@ -61,7 +62,9 @@ namespace OwO_Maker.Helpers
                 lines.Add($"Name pointer (Player+0x{(uint)Structs.TMapPlayer.NamePtr:X}): 0x{(uint)namePtr:X8}");
                 if (namePtr == IntPtr.Zero)
                 {
-                    lines.Add("Name pointer is null — offset 0x1EC may have drifted (see dump above).");
+                    lines.Add("Name pointer is null — offset 0x1EC may have drifted, scanning objects for Delphi string fields:");
+                    ScanForNames(mem, playerPtr, "Player", 0x1000, lines);
+                    ScanForNames(mem, manager, "Manager", 0x400, lines);
                     return lines;
                 }
 
@@ -73,9 +76,16 @@ namespace OwO_Maker.Helpers
                 lines.Add($"Raw bytes at namePtr: {BitConverter.ToString(raw)}");
 
                 if (CharacterName.TryDecode(nameLen, raw, out var name))
+                {
                     lines.Add($"CHARACTER NAME: '{name}' (PlayerId {playerId})");
+                }
                 else
+                {
                     lines.Add($"Could not decode a plausible name — raw ASCII: '{Encoding.ASCII.GetString(raw).Replace('\0', '.')}'");
+                    lines.Add("Offset 0x1EC has probably drifted — scanning objects for Delphi string fields:");
+                    ScanForNames(mem, playerPtr, "Player", 0x1000, lines);
+                    ScanForNames(mem, manager, "Manager", 0x400, lines);
+                }
             }
             catch (Exception ex)
             {
@@ -83,6 +93,44 @@ namespace OwO_Maker.Helpers
             }
 
             return lines;
+        }
+
+        // Treats every 4-byte field of the object as a potential string pointer and reports
+        // the ones that decode to a plausible name (Delphi AnsiString and UnicodeString),
+        // so a drifted name offset can be read straight out of the log.
+        private static void ScanForNames(Mem mem, IntPtr objAddr, string label, int range, List<string> lines)
+        {
+            if (objAddr == IntPtr.Zero)
+                return;
+
+            var buffer = mem.ReadMemoryData(objAddr, null, range);
+            int found = 0;
+
+            for (int off = 0; off + 4 <= buffer.Length; off += 4)
+            {
+                int ptr = BitConverter.ToInt32(buffer, off);
+                if (ptr <= 0x10000) // null or clearly not a user-space pointer
+                    continue;
+
+                int len = mem.ReadMemory<int>((IntPtr)ptr - 4);
+                if (len < 2 || len > CharacterName.MaxLength)
+                    continue;
+
+                var data = mem.ReadMemoryData((IntPtr)ptr, null, len * 2);
+
+                if (CharacterName.TryDecode(len, data, out var name))
+                {
+                    lines.Add($"  {label}+0x{off:X3} -> AnsiString '{name}'");
+                    found++;
+                }
+                else if (CharacterName.TryDecodeUtf16(len, data, out var uname))
+                {
+                    lines.Add($"  {label}+0x{off:X3} -> UnicodeString '{uname}'");
+                    found++;
+                }
+            }
+
+            lines.Add($"{label}: scanned first 0x{range:X} bytes, {found} string candidate(s)");
         }
     }
 }

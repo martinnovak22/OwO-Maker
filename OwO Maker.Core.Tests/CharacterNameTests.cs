@@ -42,7 +42,36 @@ namespace OwO_Maker.Core.Tests
         [Fact]
         public void TryDecode_NullBuffer_Fails()
         {
-            Assert.False(CharacterName.TryDecode(5, null, out _));
+            Assert.False(CharacterName.TryDecode(5, null!, out _));
+        }
+
+        [Fact]
+        public void TryDecodeUtf16_ValidName_ReturnsName()
+        {
+            Assert.True(CharacterName.TryDecodeUtf16(5, Encoding.Unicode.GetBytes("Panda"), out var name));
+            Assert.Equal("Panda", name);
+        }
+
+        [Fact]
+        public void TryDecodeUtf16_AsciiBytes_Fails()
+        {
+            // plain ASCII data misread as UTF-16 must not produce a name
+            Assert.False(CharacterName.TryDecodeUtf16(5, Ascii("PandaPanda"), out _));
+        }
+
+        [Fact]
+        public void TryDecodeUtf16_BufferShorterThanLength_Fails()
+        {
+            Assert.False(CharacterName.TryDecodeUtf16(10, Encoding.Unicode.GetBytes("abc"), out _));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(33)]
+        public void TryDecodeUtf16_ImplausibleLength_Fails(int length)
+        {
+            Assert.False(CharacterName.TryDecodeUtf16(length, Encoding.Unicode.GetBytes("Panda"), out _));
         }
 
         [Fact]

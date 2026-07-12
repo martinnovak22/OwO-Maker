@@ -34,6 +34,29 @@ namespace OwO_Maker.Core
             return true;
         }
 
+        /// <summary>
+        /// Same as TryDecode, but for a Delphi UnicodeString (UTF-16, length prefix counts
+        /// characters). Newer Delphi compilers store strings this way.
+        /// </summary>
+        public static bool TryDecodeUtf16(int length, byte[] data, out string name)
+        {
+            name = string.Empty;
+
+            if (length < 1 || length > MaxLength)
+                return false;
+
+            if (data == null || data.Length < length * 2)
+                return false;
+
+            var candidate = Encoding.Unicode.GetString(data, 0, length * 2);
+
+            if (!IsPlausible(candidate))
+                return false;
+
+            name = candidate;
+            return true;
+        }
+
         public static bool IsPlausible(string name)
         {
             return !string.IsNullOrEmpty(name)
