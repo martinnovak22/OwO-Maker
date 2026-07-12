@@ -78,6 +78,14 @@ App: `BotEntry` (OwO Maker/BotEntry.cs) = BotId + ClientHwnd + Thread + Control 
 - Stop (per bot i All) = `Control.Stop()`; smyčka tiše skončí na dalším ticku. `Thread.Interrupt` odstraněn (byl stejně neúčinný — `RunTask` je `async void`, po prvním awaitu běží na thread poolu).
 - Opravené bugy: `RemoveBotFromList(int)` maže podle BotId a z `WindowList` odebírá `ClientHwnd` (dřív mazal BotID z listu HWNDů → klient nešel znovu přidat); `FindListViewItemByBotID` matchuje jen sloupec 0; `UpdateStatus` iteruje přes 8 polí row (nesahá na State sloupec); `IsStarted` odstraněn.
 
+**QoL kolo 2 (2026-07-12):**
+- `BotStats` navíc měří aktivní čas běhu: `StartRun/PauseRun/ResumeRun` (pauzy se nepočítají; GUI je volá ze `StateChanged`), `Elapsed`, `AverageRound`; `GetSummary()` pak končí `, Avg round: 1:23, Total: 27:40`. Injektovatelný `TimeProvider` (testy používají fake).
+- Záložka Running Bots: tabulka zmenšená (115px) + pod ní **log panel** `logList` (500 záznamů, auto-scroll). `Form1.Log(msg)` a `NotifyBotEnded(botID, msg)` (log + `SystemSounds.Asterisk`). Všechny MessageBoxy z worker threadů miniher nahrazeny `NotifyBotEnded`; informační boxy v Gui (started/stopped/added) nahrazeny logem; validační chyby zůstaly popupy.
+- Tlačítka: Start All (8), Pause All (159), Resume All (310), Stop/Delete All (461), všechna 140×27 na y=243.
+- Sloupce listView1: BotID, Minigame, Level, Points, Prod Points, Progress (5, owner-drawn zelený bar dle "a/b"; "x/∞" jen text), Success (6, "15/20 (75 %)"), State (7). `UpdateStatus(botID, game, level, points, prodPoints, progress, success)`. Sloupce Use Prod. Coupon a Human Time odstraněny.
+- Minihry: detekce zavřeného klienta (`proc.HasExited` na začátku ticku → "Client closed" + konec), `stats.StartRun()` před smyčkou, lokální `SuccessText()`.
+- `GetWantedMinigame`: Memory správně mapuje na 5 (dřív dvakrát TypeWriter). TypeWriter/Memory zůstávají disabled — nejsou implementované (žádná bot třída ani offsety).
+
 **Max režim (checkbox `MaxGames` u pole Times):** zamkne `t_Times` a bot hraje, dokud stačí produkční body — interně `Amount = int.MaxValue` (funguje přirozeně: `playedGames >= Amount` nikdy nenastane a `CollectReward` vždy kliká Try Again), progress se zobrazuje `X/∞` a dojití bodů je normální „Done! Ran out of production points." místo chyby. `RunTask` má poslední parametr `bool unlimited`. Checkbox se persistuje jako setting `MaxGames`; persistují se i `Times` a `Level`.
 
 Lokální vývoj na macOS: `~/.dotnet/dotnet` (SDK 8; systémový je v7). App jde zkompilovat i tady: `dotnet build "OwO Maker/OwO Maker.csproj" -p:EnableWindowsTargeting=true`.

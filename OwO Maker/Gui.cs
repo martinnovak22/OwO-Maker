@@ -3,6 +3,7 @@ using OwO_Maker.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -124,6 +125,15 @@ namespace OwO_Maker
             };
 
             listView1.ContextMenuStrip = botMenu;
+
+            // Reduce flicker while the Progress column is owner-drawn.
+            typeof(System.Windows.Forms.Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(listView1, true, null);
+
+            // Render the Progress column (index 5) as a proportional bar.
+            listView1.OwnerDraw = true;
+            listView1.DrawColumnHeader += (s, e) => { e.DrawDefault = true; };
+            listView1.DrawItem += (s, e) => { /* subitems do the drawing in Details view */ };
+            listView1.DrawSubItem += ListView1_DrawSubItem;
 
             if (!Properties.Settings.Default.Disclaimer)
             {
@@ -252,17 +262,19 @@ namespace OwO_Maker
 
             BotList.Add(entry);
 
-            entry.Control.StateChanged += s => { if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 8) it.SubItems[8].Text = s.ToString(); })); };
+            entry.Control.StateChanged += s =>
+            {
+                if (s == BotState.Paused) entry.Stats.PauseRun();
+                else if (s == BotState.Running) entry.Stats.ResumeRun();
 
-            string[] row = { BotID, GetWantedMinigame().ToString(), t_Level.Text, "0", "0", ProductionCoupon.Checked.ToString(), HumanTime.Checked.ToString(), unlimited ? "0/∞" : $"0/{t_Times.Text}", "Created" };
+                if (!IsDisposed) BeginInvoke(new Action(() => { var it = FindListViewItemByBotID(entry.BotId); if (it != null && it.SubItems.Count > 7) it.SubItems[7].Text = s.ToString(); }));
+            };
+
+            string[] row = { BotID, Game.ToString(), t_Level.Text, "0", "0", unlimited ? "0/∞" : $"0/{t_Times.Text}", "-", "Created" };
             var bot = new ListViewItem(row);
             listView1.Items.Add(bot);
 
-            MessageBox.Show($"{listBox1.SelectedItem.ToString()} added to the Bot List!\n" +
-                $"\nMinigame: {Game}\nWanted Level: {t_Level.Text}\n" +
-                $"Amount: {(unlimited ? "∞ (until points run out)" : t_Times.Text)}\n" +
-                $"Human Time: {HumanTime.Checked.ToString()}\n" +
-                $"Use Productions Coupon: {ProductionCoupon.Checked.ToString()}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Log($"Bot {BotID} added: {Game}, level {t_Level.Text}, amount {(unlimited ? "∞" : t_Times.Text)}");
 
             SaveSettings();
         }
@@ -275,7 +287,7 @@ namespace OwO_Maker
             if (ShootingRange.Checked) { wantedGame = 2; }
             if (FishPond.Checked) { wantedGame = 3; }
             if (TypeWriter.Checked) { wantedGame = 4; }
-            if (TypeWriter.Checked) { wantedGame = 5; }
+            if (Memory.Checked) { wantedGame = 5; }
 
             return (Minigame)Enum.Parse(typeof(Minigame), wantedGame.ToString(), true);
 
@@ -314,7 +326,7 @@ namespace OwO_Maker
             BotList.Clear();
             WindowList.Clear();
             listView1.Items.Clear();
-            MessageBox.Show($"{Amount} Bots have been Stopped and removed from List!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Log($"{Amount} Bots have been Stopped and removed from List!");
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -347,15 +359,33 @@ namespace OwO_Maker
             if (started == 0)
                 MessageBox.Show("No bots to start!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else
-                MessageBox.Show($"{started} Bots have been started!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Log($"{started} Bots have been started!");
         }
-        public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, bool UseProdCoupon, bool HumanTime, string progress)
+
+        private void buttonPauseAll_Click(object sender, EventArgs e)
+        {
+            int n = 0;
+            foreach (BotEntry entry in BotList)
+                if (entry.Control.Pause())
+                    n++;
+            Log($"{n} bots paused");
+        }
+
+        private void buttonResumeAll_Click(object sender, EventArgs e)
+        {
+            int n = 0;
+            foreach (BotEntry entry in BotList)
+                if (entry.Control.Resume())
+                    n++;
+            Log($"{n} bots resumed");
+        }
+        public void UpdateStatus(int botID, string game, int Level, int points, int prodPoints, string progress, string success)
         {
             Invoke(new Action(() =>
             {
                 // Find item by botID
                 var item = FindListViewItemByBotID(botID);
-                string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), UseProdCoupon.ToString(), HumanTime.ToString(), progress };
+                string[] row = { botID.ToString(), game, Level.ToString(), points.ToString(), prodPoints.ToString(), progress, success };
                 if (item != null)
                     for (int i = 0; i < row.Length; i++)
                         item.SubItems[i].Text = row[i].ToString();
@@ -402,6 +432,57 @@ namespace OwO_Maker
                 if (item.SubItems[0].Text == BotID.ToString())
                     return item;
             return null;
+        }
+
+        private void ListView1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+        {
+            // Only the Progress column (index 5) gets the custom bar; everything else is default.
+            string text = e.SubItem?.Text ?? string.Empty;
+            var parts = text.Split('/');
+            if (e.ColumnIndex != 5 || parts.Length != 2 ||
+                !int.TryParse(parts[0], out int done) || !int.TryParse(parts[1], out int total) || total <= 0)
+            {
+                e.DrawDefault = true;
+                return;
+            }
+
+            bool selected = e.Item.Selected;
+            Color backColor = selected ? SystemColors.Highlight : e.SubItem.BackColor;
+            using (var bg = new SolidBrush(backColor))
+                e.Graphics.FillRectangle(bg, e.Bounds);
+
+            double fraction = done / (double)total;
+            if (fraction < 0) fraction = 0;
+            if (fraction > 1) fraction = 1;
+
+            var barBounds = Rectangle.Inflate(e.Bounds, -2, -2);
+            int barWidth = (int)(barBounds.Width * fraction);
+            if (barWidth > 0)
+                using (var bar = new SolidBrush(Color.FromArgb(120, 180, 120)))
+                    e.Graphics.FillRectangle(bar, barBounds.X, barBounds.Y, barWidth, barBounds.Height);
+
+            Color textColor = selected ? SystemColors.HighlightText : e.SubItem.ForeColor;
+            TextRenderer.DrawText(e.Graphics, text, e.SubItem.Font, e.Bounds, textColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+
+        public void Log(string message)
+        {
+            if (IsDisposed) return;
+            BeginInvoke(new Action(() =>
+            {
+                if (IsDisposed) return;
+                logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+                while (logList.Items.Count > 500)
+                    logList.Items.RemoveAt(0);
+                logList.TopIndex = logList.Items.Count - 1;
+            }));
+        }
+
+        public void NotifyBotEnded(int botID, string message)
+        {
+            Log($"Bot {botID}: {message}");
+            System.Media.SystemSounds.Asterisk.Play();
         }
 
         private void SaveSettings()
