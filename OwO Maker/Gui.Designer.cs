@@ -68,6 +68,7 @@
             logList = new System.Windows.Forms.ListBox();
             button2 = new System.Windows.Forms.Button();
             buttonPauseAll = new System.Windows.Forms.Button();
+            ShutdownWhenDone = new System.Windows.Forms.CheckBox();
             groupBox1.SuspendLayout();
             groupBox4.SuspendLayout();
             groupBox2.SuspendLayout();
@@ -377,6 +378,7 @@
             // 
             tabPage2.Controls.Add(button4);
             tabPage2.Controls.Add(buttonPauseAll);
+            tabPage2.Controls.Add(ShutdownWhenDone);
             tabPage2.Controls.Add(logList);
             tabPage2.Controls.Add(listView1);
             tabPage2.Controls.Add(button2);
@@ -392,10 +394,10 @@
             // button4
             // 
             button4.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            button4.Location = new System.Drawing.Point(461, 243);
+            button4.Location = new System.Drawing.Point(264, 243);
             button4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button4.Name = "button4";
-            button4.Size = new System.Drawing.Size(140, 27);
+            button4.Size = new System.Drawing.Size(130, 27);
             button4.TabIndex = 7;
             button4.Text = "Stop / Delete All";
             button4.UseVisualStyleBackColor = true;
@@ -468,10 +470,10 @@
             // buttonPauseAll
             //
             buttonPauseAll.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            buttonPauseAll.Location = new System.Drawing.Point(234, 243);
+            buttonPauseAll.Location = new System.Drawing.Point(136, 243);
             buttonPauseAll.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonPauseAll.Name = "buttonPauseAll";
-            buttonPauseAll.Size = new System.Drawing.Size(140, 27);
+            buttonPauseAll.Size = new System.Drawing.Size(120, 27);
             buttonPauseAll.TabIndex = 9;
             buttonPauseAll.Text = "Pause All";
             buttonPauseAll.UseVisualStyleBackColor = true;
@@ -483,11 +485,24 @@
             button2.Location = new System.Drawing.Point(8, 243);
             button2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             button2.Name = "button2";
-            button2.Size = new System.Drawing.Size(140, 27);
+            button2.Size = new System.Drawing.Size(120, 27);
             button2.TabIndex = 5;
             button2.Text = "Start All";
             button2.UseVisualStyleBackColor = true;
             button2.Click += button2_Click;
+            //
+            // ShutdownWhenDone
+            //
+            ShutdownWhenDone.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            ShutdownWhenDone.AutoSize = true;
+            ShutdownWhenDone.Location = new System.Drawing.Point(404, 248);
+            ShutdownWhenDone.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            ShutdownWhenDone.Name = "ShutdownWhenDone";
+            ShutdownWhenDone.Size = new System.Drawing.Size(160, 19);
+            ShutdownWhenDone.TabIndex = 11;
+            ShutdownWhenDone.Text = "Shutdown PC when done";
+            ShutdownWhenDone.UseVisualStyleBackColor = true;
+            ShutdownWhenDone.CheckedChanged += ShutdownWhenDone_CheckedChanged;
             // 
             // Form1
             // 
@@ -547,6 +562,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.ListBox logList;
         private System.Windows.Forms.Button buttonAddAll;
+        private System.Windows.Forms.CheckBox ShutdownWhenDone;
         private System.Windows.Forms.Button buttonPauseAll;
         private System.Windows.Forms.CheckBox MaxGames;
         private System.Windows.Forms.Label label8;

@@ -24,6 +24,8 @@ namespace OwO_Maker
 
         public bool Reset { get; private set; }
 
+        private bool shutdownScheduled;
+
         [DllImport("user32.dll")]
         static extern bool SetWindowText(IntPtr hWnd, string text);
 
@@ -483,7 +485,7 @@ namespace OwO_Maker
             catch (InvalidOperationException) { }
         }
 
-        public void RemoveBotFromList(int botID)
+        public void RemoveBotFromList(int botID, bool finishedByBot = false)
         {
             if (IsDisposed || !IsHandleCreated) return;
             try
@@ -505,10 +507,34 @@ namespace OwO_Maker
 
                     // Remove from ListView
                     listView1.Items.Remove(FindListViewItemByBotID(botID));
+
+                    // Only bot-initiated endings count towards the shutdown trigger — a manual Stop means the user is at the PC.
+                    if (finishedByBot && BotList.Count == 0 && ShutdownWhenDone.Checked)
+                        ScheduleShutdown();
                 }));
             }
             catch (ObjectDisposedException) { } // form closed while a bot was still ticking
             catch (InvalidOperationException) { }
+        }
+
+        private void ScheduleShutdown()
+        {
+            if (shutdownScheduled) return;
+            shutdownScheduled = true;
+
+            Process.Start(new ProcessStartInfo("shutdown", "/s /t 60") { CreateNoWindow = true, UseShellExecute = false });
+            Log("All bots finished — PC will shut down in 60 seconds! Uncheck 'Shutdown PC when done' to abort.");
+            System.Media.SystemSounds.Exclamation.Play();
+        }
+
+        private void ShutdownWhenDone_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!ShutdownWhenDone.Checked && shutdownScheduled)
+            {
+                Process.Start(new ProcessStartInfo("shutdown", "/a") { CreateNoWindow = true, UseShellExecute = false });
+                shutdownScheduled = false;
+                Log("Shutdown aborted.");
+            }
         }
 
         private BotEntry GetSelectedBotEntry()

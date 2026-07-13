@@ -31,7 +31,7 @@ namespace OwO_Maker.Minigames
 
             if (TMinigameManger is 0 || TMiniGamePoints is 0 || TArrowWidget is 0)
             {
-                Program.form.RemoveBotFromList(BotID);
+                Program.form.RemoveBotFromList(BotID, true);
                 Program.form.NotifyBotEnded(BotID, $"Unable to locate Memory signatures, Abort! — {stats.GetSummary()}");
                 return;
             }
@@ -46,7 +46,7 @@ namespace OwO_Maker.Minigames
                 if (proc.HasExited)
                 {
                     Program.form.NotifyBotEnded(BotID, $"Client closed! {stats.GetSummary()}");
-                    Program.form.RemoveBotFromList(BotID);
+                    Program.form.RemoveBotFromList(BotID, true);
                     return;
                 }
 
@@ -137,7 +137,7 @@ namespace OwO_Maker.Minigames
                         if (playedGames >= Amount)
                         {
                             Program.form.UpdateStatus(BotID, "ShootingRange", level, points, productionPoints, $"{playedGames}/{(unlimited ? "∞" : Amount.ToString())}", SuccessText());
-                            Program.form.RemoveBotFromList(BotID);
+                            Program.form.RemoveBotFromList(BotID, true);
                             Program.form.NotifyBotEnded(BotID, $"Done! {stats.GetSummary()}");
                             return;
                         }
@@ -153,14 +153,14 @@ namespace OwO_Maker.Minigames
 
                                 if (productionPoints == mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints))
                                 {
-                                    Program.form.RemoveBotFromList(BotID);
+                                    Program.form.RemoveBotFromList(BotID, true);
                                     Program.form.NotifyBotEnded(BotID, $"Failed to use Productions Coupon! — Wrong Key selected? — No Item in selected Slot? — Empty Coupons? — {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()} — {stats.GetSummary()}");
                                     return;
                                 }
                             }
                             else
                             {
-                                Program.form.RemoveBotFromList(BotID);
+                                Program.form.RemoveBotFromList(BotID, true);
                                 Program.form.NotifyBotEnded(BotID, unlimited ? $"Done! Ran out of production points. {stats.GetSummary()}" : $"no production points left! {stats.GetSummary()}");
                                 return;
                             }
@@ -178,14 +178,14 @@ namespace OwO_Maker.Minigames
 
                             if (productionPoints == mem.ReadMemory<int>(TMiniGamePoints + Structs.TMiniGamePoints.ProductionPoints))
                             {
-                                Program.form.RemoveBotFromList(BotID);
+                                Program.form.RemoveBotFromList(BotID, true);
                                 Program.form.NotifyBotEnded(BotID, $"Failed to use Productions Coupon! — Wrong Key selected? — No Item in selected Slot? — Empty Coupons? — {productionPoints.ToString()} != {mem.ReadMemory<int>(TMiniGamePoints + 0xC8).ToString()} — {stats.GetSummary()}");
                                 return;
                             }
                         }
                         else
                         {
-                            Program.form.RemoveBotFromList(BotID);
+                            Program.form.RemoveBotFromList(BotID, true);
                             Program.form.NotifyBotEnded(BotID, unlimited ? $"Done! Ran out of production points. {stats.GetSummary()}" : $"no production points left! {stats.GetSummary()}");
                             return;
                         }
@@ -198,7 +198,7 @@ namespace OwO_Maker.Minigames
                         await SharedRoutines.EnterMinigame(mem, hWnd, arrow, buttons);
                     else
                     {
-                        Program.form.RemoveBotFromList(BotID);
+                        Program.form.RemoveBotFromList(BotID, true);
                         Program.form.NotifyBotEnded(BotID, $"Failed to open Minigame, Abort! — {stats.GetSummary()}");
                         return;
                     }
